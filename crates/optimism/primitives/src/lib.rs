@@ -14,12 +14,11 @@
 extern crate alloc;
 
 pub mod bedrock;
+pub mod predeploys;
 pub mod transaction;
 
+pub use predeploys::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
 pub use transaction::{signed::OpTransactionSigned, tx_type::OpTxType};
-
-mod receipt;
-pub use receipt::OpReceipt;
 
 /// Optimism primitive types.
 pub type OpPrimitives = reth_primitives::EthPrimitives;

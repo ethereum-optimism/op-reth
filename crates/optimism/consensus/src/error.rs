@@ -3,7 +3,7 @@
 use alloy_primitives::B256;
 use derive_more::{Display, Error, From};
 use reth_consensus::ConsensusError;
-use reth_storage_errors::ProviderError;
+use reth_storage_errors::provider::ProviderError;
 
 /// Optimism consensus error.
 #[derive(Debug, PartialEq, Eq, Clone, Display, Error, From)]

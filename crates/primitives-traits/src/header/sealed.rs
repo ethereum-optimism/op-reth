@@ -2,7 +2,7 @@ use crate::InMemorySize;
 pub use alloy_consensus::Header;
 use alloy_consensus::Sealed;
 use alloy_eips::{eip1898::BlockWithParent, BlockNumHash};
-use alloy_primitives::{keccak256, BlockHash, Sealable};
+use alloy_primitives::{keccak256, Address, BlockHash, Bloom, Bytes, Sealable, B256, B64, U256};
 use alloy_rlp::{Decodable, Encodable};
 use bytes::BufMut;
 use core::mem;
@@ -33,14 +33,6 @@ impl<H> SealedHeader<H> {
     #[inline]
     pub const fn header(&self) -> &H {
         &self.header
-    }
-
-    /// Clone the header.
-    pub fn clone_header(&self) -> H
-    where
-        H: Clone,
-    {
-        self.header.clone()
     }
 
     /// Returns header/block hash.
@@ -77,6 +69,96 @@ impl<H: alloy_consensus::BlockHeader> SealedHeader<H> {
     /// Return a [`BlockWithParent`] for this header.
     pub fn block_with_parent(&self) -> BlockWithParent {
         BlockWithParent { parent: self.parent_hash(), block: self.num_hash() }
+    }
+}
+
+impl<H: alloy_consensus::BlockHeader> alloy_consensus::BlockHeader for SealedHeader<H> {
+    fn parent_hash(&self) -> B256 {
+        self.deref().parent_hash()
+    }
+
+    fn ommers_hash(&self) -> B256 {
+        self.deref().ommers_hash()
+    }
+
+    fn beneficiary(&self) -> Address {
+        self.deref().beneficiary()
+    }
+
+    fn state_root(&self) -> B256 {
+        self.deref().state_root()
+    }
+
+    fn transactions_root(&self) -> B256 {
+        self.deref().transactions_root()
+    }
+
+    fn receipts_root(&self) -> B256 {
+        self.deref().receipts_root()
+    }
+
+    fn withdrawals_root(&self) -> Option<B256> {
+        self.deref().withdrawals_root()
+    }
+
+    fn logs_bloom(&self) -> Bloom {
+        self.deref().logs_bloom()
+    }
+
+    fn difficulty(&self) -> U256 {
+        self.deref().difficulty()
+    }
+
+    fn number(&self) -> u64 {
+        self.deref().number()
+    }
+
+    fn gas_limit(&self) -> u64 {
+        self.deref().gas_limit()
+    }
+
+    fn gas_used(&self) -> u64 {
+        self.deref().gas_used()
+    }
+
+    fn timestamp(&self) -> u64 {
+        self.deref().timestamp()
+    }
+
+    fn extra_data(&self) -> &Bytes {
+        self.deref().extra_data()
+    }
+
+    fn mix_hash(&self) -> Option<B256> {
+        self.deref().mix_hash()
+    }
+
+    fn nonce(&self) -> Option<B64> {
+        self.deref().nonce()
+    }
+
+    fn base_fee_per_gas(&self) -> Option<u64> {
+        self.deref().base_fee_per_gas()
+    }
+
+    fn blob_gas_used(&self) -> Option<u64> {
+        self.deref().blob_gas_used()
+    }
+
+    fn excess_blob_gas(&self) -> Option<u64> {
+        self.deref().excess_blob_gas()
+    }
+
+    fn parent_beacon_block_root(&self) -> Option<B256> {
+        self.deref().parent_beacon_block_root()
+    }
+
+    fn requests_hash(&self) -> Option<B256> {
+        self.deref().requests_hash()
+    }
+
+    fn target_blobs_per_block(&self) -> Option<u64> {
+        self.deref().target_blobs_per_block()
     }
 }
 

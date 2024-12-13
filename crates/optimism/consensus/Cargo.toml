@@ -18,6 +18,9 @@ reth-consensus-common.workspace = true
 reth-consensus.workspace = true
 reth-primitives.workspace = true
 reth-trie-common.workspace = true
+reth-storage-api.workspace = true
+reth-storage-errors.workspace = true
+reth-primitives-traits.workspace = true
 
 # op-reth
 reth-optimism-forks.workspace = true
@@ -31,6 +34,8 @@ alloy-primitives.workspace = true
 alloy-consensus.workspace = true
 alloy-trie.workspace = true
 
+# misc
+derive_more = { workspace = true, features = ["display", "error"] }
 tracing.workspace = true
 
 [dev-dependencies]
@@ -38,4 +43,8 @@ alloy-primitives.workspace = true
 reth-optimism-chainspec.workspace = true
 
 [features]
-optimism = ["reth-primitives/optimism", "reth-optimism-primitives/optimism"]
+optimism = [
+    "reth-primitives/optimism",
+    "reth-optimism-primitives/optimism",
+    "reth-primitives-traits/op",
+]
