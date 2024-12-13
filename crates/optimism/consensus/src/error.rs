@@ -18,13 +18,13 @@ pub enum OpConsensusError {
     LoadStorageRootFailed(ProviderError),
     /// Storage root of
     /// [`L2toL1MessagePasser`](reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER) missing
-    /// in block (withdrawals root field).
+    /// in block header (withdrawals root field).
     #[display("storage root of l2tol1-msg-passer predeploy missing from block header (withdrawals root field empty)")]
     StorageRootMissing,
     /// Storage root of
     /// [`L2toL1MessagePasser`](reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER)
-    /// in block (withdrawals field), doesn't match local storage root.
-    #[display("L2toL1MessagePasser storage root mismatch, got: {got}, expected {expected}"]
+    /// in block header (withdrawals field), doesn't match local storage root.
+    #[display("L2toL1MessagePasser storage root mismatch, got: {got}, expected {expected}")]
     StorageRootMismatch {
         /// Storage root of pre-deploy in block.
         got: B256,
