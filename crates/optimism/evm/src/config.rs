@@ -13,7 +13,7 @@ pub fn revm_spec_by_timestamp_after_bedrock(
     timestamp: u64,
 ) -> revm_primitives::SpecId {
     if chain_spec.fork(OpHardfork::Isthmus).active_at_timestamp(timestamp) {
-        todo!()
+        revm_primitives::HOLOCENE // todo: replace <https://github.com/bluealloy/revm/issues/1874>
     } else if chain_spec.fork(OpHardfork::Holocene).active_at_timestamp(timestamp) {
         revm_primitives::HOLOCENE
     } else if chain_spec.fork(OpHardfork::Granite).active_at_timestamp(timestamp) {
@@ -34,7 +34,7 @@ pub fn revm_spec_by_timestamp_after_bedrock(
 /// Map the latest active hardfork at the given block to a revm [`SpecId`](revm_primitives::SpecId).
 pub fn revm_spec(chain_spec: &OpChainSpec, block: &Head) -> revm_primitives::SpecId {
     if chain_spec.fork(OpHardfork::Isthmus).active_at_head(block) {
-        todo!()
+        revm_primitives::HOLOCENE // todo: replace <https://github.com/bluealloy/revm/issues/1874>
     } else if chain_spec.fork(OpHardfork::Holocene).active_at_head(block) {
         revm_primitives::HOLOCENE
     } else if chain_spec.fork(OpHardfork::Granite).active_at_head(block) {
