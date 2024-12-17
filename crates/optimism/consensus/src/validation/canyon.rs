@@ -9,7 +9,7 @@ use reth_primitives_traits::BlockBody;
 use crate::OpConsensusError;
 
 /// Validate that withdrawals in block body (Shanghai) is always empty in Canyon.
-// todo: link OP docs
+/// <https://specs.optimism.io/protocol/rollup-node-p2p.html#block-validation>
 #[inline]
 pub fn validate_empty_shanghai_withdrawals<B: BlockBody>(body: &B) -> Result<(), OpConsensusError> {
     // Shanghai rule
