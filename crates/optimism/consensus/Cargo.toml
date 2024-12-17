@@ -39,8 +39,10 @@ derive_more = { workspace = true, features = ["display", "error"] }
 tracing.workspace = true
 
 [dev-dependencies]
-alloy-primitives.workspace = true
-reth-optimism-chainspec.workspace = true
+reth-provider = { workspace = true, features = ["test-utils", "optimism"] }
+reth-trie.workspace = true
+reth-trie-db.workspace = true
+reth-db-common.workspace = true
 
 [features]
 optimism = [

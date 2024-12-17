@@ -24,12 +24,12 @@ pub enum OpConsensusError {
     /// Storage root of
     /// [`L2toL1MessagePasser`](reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER)
     /// in block header (withdrawals field), doesn't match local storage root.
-    #[display("L2toL1MessagePasser storage root mismatch, got: {got}, expected {expected}")]
+    #[display("l2tol1-msg-passer storage root mismatch, block: {block}, local: {local}")]
     StorageRootMismatch {
         /// Storage root of pre-deploy in block.
-        got: B256,
+        block: B256,
         /// Storage root of pre-deploy loaded from local state.
-        expected: B256,
+        local: B256,
     },
     /// L1 [`ConsensusError`], that also occurs on L2.
     #[display("{_0}")]

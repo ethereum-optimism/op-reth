@@ -9,6 +9,9 @@
 // The `optimism` feature must be enabled to use this crate.
 #![cfg(feature = "optimism")]
 
+extern crate alloc;
+
+use alloc::sync::Arc;
 use core::fmt;
 
 use alloy_consensus::{BlockHeader, Header, EMPTY_OMMER_ROOT_HASH};
@@ -28,7 +31,7 @@ use reth_optimism_forks::OpHardforks;
 use reth_optimism_primitives::OpPrimitives;
 use reth_primitives::{BlockBody, BlockWithSenders, GotExpected, SealedBlock, SealedHeader};
 use reth_storage_api::StateProviderFactory;
-use std::{sync::Arc, time::SystemTime};
+use std::time::SystemTime;
 use tracing::trace;
 
 pub mod error;

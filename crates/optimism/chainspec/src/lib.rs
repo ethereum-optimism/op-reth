@@ -186,7 +186,7 @@ impl OpChainSpecBuilder {
 }
 
 /// OP stack chain spec type.
-#[derive(Debug, Clone, Deref, Into, Constructor, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Deref, Into, Constructor, PartialEq, Eq)]
 pub struct OpChainSpec {
     /// [`ChainSpec`].
     pub inner: ChainSpec,

@@ -8441,14 +8441,18 @@ dependencies = [
  "reth-chainspec",
  "reth-consensus",
  "reth-consensus-common",
+ "reth-db-common",
  "reth-optimism-chainspec",
  "reth-optimism-forks",
  "reth-optimism-primitives",
  "reth-primitives",
  "reth-primitives-traits",
+ "reth-provider",
  "reth-storage-api",
  "reth-storage-errors",
+ "reth-trie",
  "reth-trie-common",
+ "reth-trie-db",
  "tracing",
 ]
 

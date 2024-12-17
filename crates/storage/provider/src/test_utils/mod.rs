@@ -3,7 +3,7 @@ use crate::{
     HashingWriter, ProviderFactory, TrieWriter,
 };
 use alloy_primitives::B256;
-use reth_chainspec::{ChainSpec, MAINNET};
+use reth_chainspec::{ChainSpec, EthChainSpec, MAINNET};
 use reth_db::{
     test_utils::{create_test_rw_db, create_test_static_files_dir, TempDatabase},
     DatabaseEnv,
@@ -24,17 +24,17 @@ pub use noop::NoopProvider;
 pub use reth_chain_state::test_utils::TestCanonStateSubscriptions;
 
 /// Mock [`reth_node_types::NodeTypes`] for testing.
-pub type MockNodeTypes = reth_node_types::AnyNodeTypesWithEngine<
+pub type MockNodeTypes<C = ChainSpec> = reth_node_types::AnyNodeTypesWithEngine<
     reth_primitives::EthPrimitives,
     reth_ethereum_engine_primitives::EthEngineTypes,
-    reth_chainspec::ChainSpec,
+    C,
     reth_trie_db::MerklePatriciaTrie,
     crate::EthStorage,
 >;
 
 /// Mock [`reth_node_types::NodeTypesWithDB`] for testing.
-pub type MockNodeTypesWithDB<DB = TempDatabase<DatabaseEnv>> =
-    NodeTypesWithDBAdapter<MockNodeTypes, Arc<DB>>;
+pub type MockNodeTypesWithDB<DB = TempDatabase<DatabaseEnv>, C = ChainSpec> =
+    NodeTypesWithDBAdapter<MockNodeTypes<C>, Arc<DB>>;
 
 /// Creates test provider factory with mainnet chain spec.
 pub fn create_test_provider_factory() -> ProviderFactory<MockNodeTypesWithDB> {
@@ -42,9 +42,11 @@ pub fn create_test_provider_factory() -> ProviderFactory<MockNodeTypesWithDB> {
 }
 
 /// Creates test provider factory with provided chain spec.
-pub fn create_test_provider_factory_with_chain_spec(
-    chain_spec: Arc<ChainSpec>,
-) -> ProviderFactory<MockNodeTypesWithDB> {
+pub fn create_test_provider_factory_with_chain_spec<
+    C: EthChainSpec<Header = alloy_consensus::Header> + 'static,
+>(
+    chain_spec: Arc<C>,
+) -> ProviderFactory<MockNodeTypesWithDB<TempDatabase<DatabaseEnv>, C>> {
     let (static_dir, _) = create_test_static_files_dir();
     let db = create_test_rw_db();
     ProviderFactory::new(
