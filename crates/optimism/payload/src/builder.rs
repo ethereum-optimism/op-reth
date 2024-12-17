@@ -335,16 +335,20 @@ where
         // and 4788 contract call
         state.merge_transitions(BundleRetention::Reverts);
 
-        // withdrawals root field in block header is used for storage root of L2 predeploy
-        // `l2tol1-message-passer`
-        let withdrawals_root = Some(if ctx.is_isthmus_active() {
-            state
-                .database
-                .as_ref()
-                .storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default())?
+        let withdrawals_root = if ctx.is_isthmus_active() {
+            // withdrawals root field in block header is used for storage root of L2 predeploy
+            // `l2tol1-message-passer`
+            Some(
+                state
+                    .database
+                    .as_ref()
+                    .storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default())?,
+            )
+        } else if ctx.is_canyon_active() {
+            Some(EMPTY_WITHDRAWALS)
         } else {
-            EMPTY_WITHDRAWALS
-        });
+            None
+        };
 
         let payload = ExecutedPayload { info, withdrawals_root };
 
