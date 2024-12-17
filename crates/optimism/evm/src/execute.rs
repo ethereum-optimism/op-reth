@@ -24,6 +24,7 @@ use reth_optimism_forks::OpHardfork;
 use reth_optimism_primitives::OpPrimitives;
 use reth_primitives::{BlockWithSenders, Receipt, TransactionSigned, TxType};
 use reth_revm::{Database, State};
+use reth_storage_api::noop::NoopProvider;
 use revm_primitives::{db::DatabaseCommit, EnvWithHandlerCfg, ResultAndState, U256};
 use tracing::trace;
 
@@ -292,7 +293,13 @@ where
         receipts: &[Receipt],
         _requests: &Requests,
     ) -> Result<(), ConsensusError> {
-        validate_block_post_execution(block, &self.chain_spec.clone(), receipts)
+        validate_block_post_execution(
+            block,
+            &self.chain_spec.clone(),
+            receipts,
+            None,
+            None::<&NoopProvider>,
+        )
     }
 }
 

@@ -69,7 +69,13 @@ where
         block: &BlockWithSenders,
         input: PostExecutionInput<'_>,
     ) -> Result<(), ConsensusError> {
-        validate_block_post_execution(block, &self.chain_spec, input.receipts)
+        validate_block_post_execution(
+            block,
+            &self.chain_spec,
+            input.receipts,
+            Some(input.state),
+            Some(&self.provider),
+        )
     }
 }
 
@@ -120,19 +126,7 @@ where
             return Ok(())
         }
 
-        if self.chain_spec.is_isthmus_active_at_timestamp(block.timestamp) {
-            isthmus::validate_l2_to_l1_msg_passer(&self.provider, &block.header).map_err(
-                |err| {
-                    trace!(target: "op::consensus",
-                        block_number=block.number(),
-                        %err,
-                        "block failed validation",
-                    );
-
-                    ConsensusError::Other
-                },
-            )?;
-        } else {
+        if !self.chain_spec.is_isthmus_active_at_timestamp(block.timestamp) {
             // canyon is active, else would already have returned
             canyon::validate_empty_withdrawals_root(&block.header)?;
         }

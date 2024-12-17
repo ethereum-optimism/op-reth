@@ -4,20 +4,27 @@ pub mod canyon;
 pub mod isthmus;
 
 use crate::proof::calculate_receipt_root_optimism;
-use alloy_consensus::TxReceipt;
+use alloy_consensus::{BlockHeader, TxReceipt};
 use alloy_primitives::{Bloom, B256};
 use reth_chainspec::{ChainSpec, EthereumHardforks};
 use reth_consensus::ConsensusError;
+use reth_optimism_chainspec::OpChainSpec;
+use reth_optimism_forks::OpHardforks;
 use reth_primitives::{gas_spent_by_transactions, BlockWithSenders, GotExpected, Receipt};
+use reth_storage_api::StateProviderFactory;
+use revm::db::BundleState;
+use tracing::{debug, trace};
 
 /// Validate a block with regard to execution results:
 ///
 /// - Compares the receipts root in the block header to the block body
 /// - Compares the gas used in the block header to the actual gas usage after execution
-pub fn validate_block_post_execution(
+pub fn validate_block_post_execution<P: StateProviderFactory>(
     block: &BlockWithSenders,
-    chain_spec: &ChainSpec,
+    chain_spec: &OpChainSpec,
     receipts: &[Receipt],
+    state_updates: Option<&BundleState>,
+    provider: Option<&P>,
 ) -> Result<(), ConsensusError> {
     // Before Byzantium, receipts contained state root that would mean that expensive
     // operation as hashing that is required for state root got calculated in every
@@ -44,6 +51,30 @@ pub fn validate_block_post_execution(
             gas: GotExpected { got: cumulative_gas_used, expected: block.gas_used },
             gas_spent_by_tx: gas_spent_by_transactions(receipts),
         })
+    }
+
+    if chain_spec.is_isthmus_active_at_timestamp(block.timestamp) {
+        // state args should be present if call is from live sync
+        // todo: pass state args in batch execution to make args non-optional
+        match (state_updates, provider) {
+            (Some(state_updates), Some(provider)) => {
+                isthmus::validate_l2_to_l1_msg_passer(state_updates, provider, &block.header)
+                    .map_err(|err| {
+                        trace!(target: "op::consensus",
+                            block_number=block.number(),
+                            %err,
+                            "block failed validation",
+                        );
+
+                        ConsensusError::Other
+                    })?;
+            }
+            _ => {
+                debug!(target: "op::consensus",
+                    "skipping isthmus l2tol1-msg-passer validation in pipeline sync"
+                );
+            }
+        }
     }
 
     Ok(())

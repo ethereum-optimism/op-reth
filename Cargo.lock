@@ -6942,6 +6942,7 @@ dependencies = [
  "derive_more",
  "reth-primitives",
  "reth-primitives-traits",
+ "revm",
 ]
 
 [[package]]
@@ -8453,6 +8454,7 @@ dependencies = [
  "reth-trie",
  "reth-trie-common",
  "reth-trie-db",
+ "revm",
  "tracing",
 ]
 
@@ -8481,6 +8483,7 @@ dependencies = [
  "reth-primitives-traits",
  "reth-prune-types",
  "reth-revm",
+ "reth-storage-api",
  "revm",
  "revm-primitives",
  "tracing",

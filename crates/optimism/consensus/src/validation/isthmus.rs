@@ -3,23 +3,39 @@
 use alloy_consensus::BlockHeader;
 use reth_optimism_primitives::predeploys::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
 use reth_storage_api::{StateProviderFactory, StorageRootProvider};
+use reth_trie::{test_utils::storage_root_prehashed, HashedStorage};
+use revm::db::BundleState;
 
 use crate::OpConsensusError;
 
 /// Validates block header field `withdrawals_root` against storage root of
-/// `2toL1-message-passer` predeploy.
+/// `l2tol1-message-passer` predeploy post block execution.
 pub fn validate_l2_to_l1_msg_passer<H: BlockHeader, P: StateProviderFactory>(
+    state_updates: &BundleState,
     provider: &P,
     header: &H,
 ) -> Result<(), OpConsensusError> {
     let header_storage_root =
         header.withdrawals_root().ok_or(OpConsensusError::StorageRootMissing)?;
 
-    let state = provider.latest().map_err(OpConsensusError::LoadStorageRootFailed)?;
-
-    let storage_root = state
-        .storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default())
-        .map_err(OpConsensusError::LoadStorageRootFailed)?;
+    let storage_root = match state_updates.state().get(&ADDRESS_L2_TO_L1_MESSAGE_PASSER) {
+        Some(account) => {
+            // block contained withdrawals transactions, use predeploy storage updates from
+            // execution
+            let hashed_storage = HashedStorage::from_plain_storage(
+                account.status,
+                account.storage.iter().map(|(slot, value)| (slot, &value.present_value)),
+            );
+            storage_root_prehashed(hashed_storage.storage)
+        }
+        None => {
+            // no withdrawals transactions in block, use previously recorded storage of predeploy
+            let state = provider.latest().map_err(OpConsensusError::LoadStorageRootFailed)?;
+            state
+                .storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default())
+                .map_err(OpConsensusError::LoadStorageRootFailed)?
+        }
+    };
 
     if header_storage_root != storage_root {
         return Err(OpConsensusError::StorageRootMismatch {
@@ -44,12 +60,12 @@ mod test {
         providers::BlockchainProvider2, test_utils::create_test_provider_factory_with_chain_spec,
         StateWriter,
     };
-    use reth_trie::{test_utils::storage_root_prehashed, HashedPostState, HashedStorage};
+    use reth_trie::{test_utils::storage_root_prehashed, HashedPostState};
 
     use super::*;
 
     #[test]
-    fn l2tol1_message_passer() {
+    fn l2tol1_message_passer_no_withdrawals() {
         let hashed_address = keccak256(ADDRESS_L2_TO_L1_MESSAGE_PASSER);
 
         // create account storage
@@ -87,7 +103,13 @@ mod test {
         // create state provider factory
         let state_provider_factory = BlockchainProvider2::new(provider_factory).unwrap();
 
-        // validate block
-        validate_l2_to_l1_msg_passer(&state_provider_factory, &header).unwrap();
+        // validate block against existing state by passing empty state updates
+        let block_execution_state_updates = BundleState::default();
+        validate_l2_to_l1_msg_passer(
+            &block_execution_state_updates,
+            &state_provider_factory,
+            &header,
+        )
+        .unwrap();
     }
 }
