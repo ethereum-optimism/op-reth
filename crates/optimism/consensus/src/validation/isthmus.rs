@@ -1,4 +1,4 @@
-//! Block validation w.r.t. consensus rules new in isthmus hardfork.
+//! Block validation w.r.t. consensus rules new in Isthmus hardfork.
 
 use alloy_consensus::BlockHeader;
 use reth_optimism_primitives::predeploys::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
