@@ -2237,7 +2237,7 @@ where
 
         if let Err(err) = self.consensus.validate_block_post_execution(
             &block,
-            PostExecutionInput::new(&output.receipts, &output.requests),
+            PostExecutionInput::new(&output.state, &output.receipts, &output.requests),
         ) {
             // call post-block hook
             self.invalid_block_hook.on_invalid_block(

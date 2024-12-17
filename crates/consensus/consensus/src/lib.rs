@@ -20,6 +20,7 @@ use reth_primitives::{
     InvalidTransactionError, NodePrimitives, Receipt, SealedBlock, SealedHeader,
 };
 use reth_primitives_traits::constants::MINIMUM_GAS_LIMIT;
+use revm::db::BundleState;
 
 /// A consensus implementation that does nothing.
 pub mod noop;
@@ -31,6 +32,8 @@ pub mod test_utils;
 /// Post execution input passed to [`FullConsensus::validate_block_post_execution`].
 #[derive(Debug)]
 pub struct PostExecutionInput<'a, R = Receipt> {
+    /// Post execution state updates.
+    pub state: &'a BundleState,
     /// Receipts of the block.
     pub receipts: &'a [R],
     /// EIP-7685 requests of the block.
@@ -39,8 +42,8 @@ pub struct PostExecutionInput<'a, R = Receipt> {
 
 impl<'a, R> PostExecutionInput<'a, R> {
     /// Creates a new instance of `PostExecutionInput`.
-    pub const fn new(receipts: &'a [R], requests: &'a Requests) -> Self {
-        Self { receipts, requests }
+    pub const fn new(state: &'a BundleState, receipts: &'a [R], requests: &'a Requests) -> Self {
+        Self { state, receipts, requests }
     }
 }
 

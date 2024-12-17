@@ -174,7 +174,7 @@ where
 
         self.consensus.validate_block_post_execution(
             &block,
-            PostExecutionInput::new(&output.receipts, &output.requests),
+            PostExecutionInput::new(&output.state, &output.receipts, &output.requests),
         )?;
 
         self.ensure_payment(&block, &output, &message)?;

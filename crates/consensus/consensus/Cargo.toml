@@ -19,6 +19,7 @@ reth-primitives-traits.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-consensus.workspace = true
+revm.workspace = true
 
 # misc
 auto_impl.workspace = true
@@ -33,7 +34,8 @@ std = [
 	"alloy-eips/std",
 	"alloy-consensus/std",
 	"reth-primitives-traits/std",
-	"derive_more/std"
+	"derive_more/std",
+	"revm/std",
 ]
 test-utils = [
 	"reth-primitives/test-utils",
