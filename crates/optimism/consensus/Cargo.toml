@@ -21,7 +21,7 @@ reth-trie-common.workspace = true
 reth-storage-api.workspace = true
 reth-storage-errors.workspace = true
 reth-primitives-traits.workspace = true
-reth-trie.workspace = true
+reth-trie = { workspace = true, features = ["test-utils"] }
 
 # op-reth
 reth-optimism-forks.workspace = true
