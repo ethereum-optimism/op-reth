@@ -1,6 +1,7 @@
 //! Helpers for testing.
 
 use crate::{
+    env::EvmEnv,
     execute::{
         BasicBatchExecutor, BasicBlockExecutor, BatchExecutor, BlockExecutionInput,
         BlockExecutionOutput, BlockExecutionStrategy, BlockExecutorProvider, Executor,
@@ -28,7 +29,7 @@ impl<C: Send + Sync, N: NodePrimitives> EvmEnvProvider<N::BlockHeader>
         &self,
         header: &N::BlockHeader,
         evm_config: EvmConfig,
-    ) -> ProviderResult<(CfgEnvWithHandlerCfg, BlockEnv)>
+    ) -> ProviderResult<EvmEnv>
     where
         EvmConfig: ConfigureEvmEnv<Header = N::BlockHeader>,
     {
