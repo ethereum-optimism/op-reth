@@ -51,4 +51,5 @@ optimism = [
     "reth-optimism-primitives/optimism",
     "reth-primitives-traits/op",
     "reth-provider/optimism",
+    "revm/optimism",
 ]
