@@ -10,9 +10,7 @@ use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
 use derive_more::{Deref, DerefMut};
 #[cfg(any(test, feature = "arbitrary"))]
 pub use reth_primitives_traits::test_utils::{generate_valid_header, valid_header_strategy};
-use reth_primitives_traits::{
-    BlockBody as _, InMemorySize, MaybeSerdeBincodeCompat, SignedTransaction, Transaction,
-};
+use reth_primitives_traits::{BlockBody as _, InMemorySize, SignedTransaction, Transaction};
 use serde::{Deserialize, Serialize};
 
 /// Ethereum full block.

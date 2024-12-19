@@ -5,7 +5,6 @@ use derive_more::derive::Deref;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use reth_errors::{ProviderError, ProviderResult};
 use reth_evm::system_calls::OnStateHook;
-use reth_execution_errors::StateProofError;
 use reth_provider::{
     providers::ConsistentDbView, BlockReader, DBProvider, DatabaseProviderFactory,
     StateCommitmentProvider,
@@ -284,8 +283,6 @@ pub struct StateRootTask<Factory, BPF: BlindedProviderFactory> {
     /// The sparse trie used for the state root calculation. If [`None`], then update is in
     /// progress.
     sparse_trie: Option<Box<SparseStateTrie<BPF>>>,
-    /// Timestamp when the first state update was received
-    start_time: Option<Instant>,
 }
 
 #[allow(dead_code)]
@@ -315,7 +312,6 @@ where
             fetched_proof_targets: Default::default(),
             proof_sequencer: ProofSequencer::new(),
             sparse_trie: Some(Box::new(SparseStateTrie::new(blinded_provider).with_updates(true))),
-            start_time: None,
         }
     }
 
