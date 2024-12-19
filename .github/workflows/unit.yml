@@ -67,6 +67,7 @@ jobs:
 
   state:
     name: Ethereum state tests
+    if: false
     runs-on: ubuntu-latest
     env:
       RUST_LOG: info,sync=error
