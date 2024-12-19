@@ -48,8 +48,8 @@ jobs:
             os: ubuntu-20.04
             profile: maxperf
         build:
-          - command: build
-            binary: reth
+          #- command: build
+          #  binary: reth
           - command: op-build
             binary: op-reth
     steps:

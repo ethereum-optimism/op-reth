@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         bin:
-          - cargo run --bin reth --features "dev"
+          #- cargo run --bin reth --features "dev"
           - cargo run --bin op-reth --features "optimism dev" --manifest-path crates/optimism/bin/Cargo.toml
     steps:
       - uses: dtolnay/rust-toolchain@stable

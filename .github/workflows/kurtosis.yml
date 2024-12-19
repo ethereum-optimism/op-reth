@@ -27,6 +27,8 @@ jobs:
     strategy:
       fail-fast: false
     name: run kurtosis
+    # Skip non-op-reth job
+    if: false
     runs-on:
       group: Reth
     needs:
