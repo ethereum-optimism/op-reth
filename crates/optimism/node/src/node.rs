@@ -13,7 +13,7 @@ use reth_basic_payload_builder::{BasicPayloadJobGenerator, BasicPayloadJobGenera
 use reth_chainspec::{EthChainSpec, EthereumHardforks, Hardforks};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_evm::{execute::BasicBlockExecutorProvider, ConfigureEvm};
-use reth_network::{EthNetworkPrimitives, NetworkConfig, NetworkHandle, NetworkManager, PeersInfo};
+use reth_network::{NetworkConfig, NetworkHandle, NetworkManager, NetworkPrimitives, PeersInfo};
 use reth_node_api::{AddOnsContext, EngineValidator, FullNodeComponents, NodeAddOns, TxTy};
 use reth_node_builder::{
     components::{
@@ -625,7 +625,7 @@ impl OpNetworkBuilder {
     pub fn network_config<Node>(
         &self,
         ctx: &BuilderContext<Node>,
-    ) -> eyre::Result<NetworkConfig<<Node as FullNodeTypes>::Provider>>
+    ) -> eyre::Result<NetworkConfig<<Node as FullNodeTypes>::Provider, OpNetworkPrimitives>>
     where
         Node: FullNodeTypes<Types: NodeTypes<ChainSpec: Hardforks>>,
     {
@@ -674,13 +674,13 @@ where
         > + Unpin
         + 'static,
 {
-    type Primitives = EthNetworkPrimitives;
+    type Primitives = OpNetworkPrimitives;
 
     async fn build_network(
         self,
         ctx: &BuilderContext<Node>,
         pool: Pool,
-    ) -> eyre::Result<NetworkHandle> {
+    ) -> eyre::Result<NetworkHandle<Self::Primitives>> {
         let network_config = self.network_config(ctx)?;
         let network = NetworkManager::builder(network_config).await?;
         let handle = ctx.start_network(network, pool);
@@ -728,4 +728,18 @@ where
     async fn build(self, ctx: &AddOnsContext<'_, Node>) -> eyre::Result<Self::Validator> {
         Ok(OpEngineValidator::new(ctx.config.chain.clone()))
     }
+}
+
+/// Network primitive types used by Optimism networks.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub struct OpNetworkPrimitives;
+
+impl NetworkPrimitives for OpNetworkPrimitives {
+    type BlockHeader = alloy_consensus::Header;
+    type BlockBody = reth_primitives::BlockBody;
+    type Block = reth_primitives::Block;
+    type BroadcastedTransaction = reth_primitives::TransactionSigned;
+    type PooledTransaction = reth_primitives::PooledTransaction;
+    type Receipt = reth_primitives::Receipt;
 }
