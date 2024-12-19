@@ -20,8 +20,10 @@ concurrency:
 jobs:
   stage:
     name: stage-run-test
+    # Skip non-op-reth job
+    if: false
     # Only run stage commands test in merge groups
-    if: github.event_name == 'merge_group'
+    #if: github.event_name == 'merge_group'
     runs-on:
       group: Reth
     env:
