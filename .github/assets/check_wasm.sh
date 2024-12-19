@@ -45,6 +45,7 @@ exclude_crates=(
   reth-node-metrics
   reth-optimism-cli
   reth-optimism-consensus
+  reth-optimism-evm
   reth-optimism-node
   reth-optimism-payload-builder
   reth-optimism-rpc
