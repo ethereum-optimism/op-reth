@@ -3,6 +3,7 @@
 name: kurtosis-op
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
