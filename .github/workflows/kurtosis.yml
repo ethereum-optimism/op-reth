@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   prepare-reth:
+    if: false
     uses: ./.github/workflows/prepare-reth.yml
     with:
       image_tag: ghcr.io/paradigmxyz/reth:kurtosis-ci
