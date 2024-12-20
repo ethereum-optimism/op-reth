@@ -24,7 +24,7 @@ on:
 
 jobs:
   prepare-reth:
-    if: github.repository == 'paradigmxyz/reth'
+    if: github.repository == 'paradigmxyz/reth' || github.repository == 'ethereum-optimism/op-reth'
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
