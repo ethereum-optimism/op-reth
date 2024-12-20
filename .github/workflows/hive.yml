@@ -3,10 +3,9 @@
 name: hive
 
 on:
-  workflow_dispatch:
-  schedule:
-    # run every 12 hours
-    - cron: "0 */12 * * *"
+  push:
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -23,7 +22,7 @@ jobs:
       binary_name: reth
 
   prepare-hive:
-    if: github.repository == 'paradigmxyz/reth'
+    if: github.repository == 'paradigmxyz/reth' || github.repository == 'ethereum-optimism/op-reth'
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
