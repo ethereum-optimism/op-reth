@@ -150,8 +150,10 @@ impl ExecutorMetrics {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use alloy_eips::eip7685::Requests;
     use metrics_util::debugging::{DebugValue, DebuggingRecorder, Snapshotter};
+    use reth_revm::StateProviderDatabase;
     use revm::db::BundleState;
     use revm_primitives::{
         Account, AccountInfo, AccountStatus, EvmState, EvmStorage, EvmStorageSlot, B256, U256,
@@ -185,7 +187,7 @@ mod tests {
             _state: F,
         ) -> Result<Self::Output, Self::Error>
         where
-            F: FnMut(&revm::State<()>),
+            F: FnMut(&revm::State<StateProviderDatabase<()>>),
         {
             Ok(BlockExecutionOutput {
                 state: BundleState::default(),

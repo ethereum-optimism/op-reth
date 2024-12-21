@@ -17,10 +17,11 @@ use reth_execution_errors::BlockExecutionError;
 use reth_execution_types::ExecutionOutcome;
 use reth_primitives::{BlockWithSenders, EthPrimitives, NodePrimitives, Receipt, Receipts};
 use reth_prune_types::PruneModes;
-use reth_storage_errors::provider::{ProviderError, ProviderResult};
+use reth_revm::database::StateProviderDatabase;
+use reth_storage_api::StateProvider;
+use reth_storage_errors::provider::ProviderResult;
 use revm::State;
-use revm_primitives::db::Database;
-use std::{fmt::Display, sync::Arc};
+use std::sync::Arc;
 
 impl<C: Send + Sync, N: NodePrimitives> EvmEnvProvider<N::BlockHeader>
     for reth_storage_api::noop::NoopProvider<C, N>
@@ -53,20 +54,20 @@ impl MockExecutorProvider {
 impl BlockExecutorProvider for MockExecutorProvider {
     type Primitives = EthPrimitives;
 
-    type Executor<DB: Database<Error: Into<ProviderError> + Display>> = Self;
+    type Executor<DB: StateProvider> = Self;
 
-    type BatchExecutor<DB: Database<Error: Into<ProviderError> + Display>> = Self;
+    type BatchExecutor<DB: StateProvider> = Self;
 
     fn executor<DB>(&self, _: DB) -> Self::Executor<DB>
     where
-        DB: Database<Error: Into<ProviderError> + Display>,
+        DB: StateProvider,
     {
         self.clone()
     }
 
     fn batch_executor<DB>(&self, _: DB) -> Self::BatchExecutor<DB>
     where
-        DB: Database<Error: Into<ProviderError> + Display>,
+        DB: StateProvider,
     {
         self.clone()
     }
@@ -97,7 +98,7 @@ impl<DB> Executor<DB> for MockExecutorProvider {
         _: F,
     ) -> Result<Self::Output, Self::Error>
     where
-        F: FnMut(&State<DB>),
+        F: FnMut(&State<StateProviderDatabase<DB>>),
     {
         <Self as Executor<DB>>::execute(self, input)
     }
@@ -143,7 +144,7 @@ where
     /// Provides safe read access to the state
     pub fn with_state<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(&State<S::DB>) -> R,
+        F: FnOnce(&State<StateProviderDatabase<S::DB>>) -> R,
     {
         f(self.strategy.state_ref())
     }
@@ -151,7 +152,7 @@ where
     /// Provides safe write access to the state
     pub fn with_state_mut<F, R>(&mut self, f: F) -> R
     where
-        F: FnOnce(&mut State<S::DB>) -> R,
+        F: FnOnce(&mut State<StateProviderDatabase<S::DB>>) -> R,
     {
         f(self.strategy.state_mut())
     }
@@ -164,7 +165,7 @@ where
     /// Provides safe read access to the state
     pub fn with_state<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(&State<S::DB>) -> R,
+        F: FnOnce(&State<StateProviderDatabase<S::DB>>) -> R,
     {
         f(self.strategy.state_ref())
     }
@@ -172,7 +173,7 @@ where
     /// Provides safe write access to the state
     pub fn with_state_mut<F, R>(&mut self, f: F) -> R
     where
-        F: FnOnce(&mut State<S::DB>) -> R,
+        F: FnOnce(&mut State<StateProviderDatabase<S::DB>>) -> R,
     {
         f(self.strategy.state_mut())
     }

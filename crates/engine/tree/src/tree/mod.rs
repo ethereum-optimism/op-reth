@@ -2215,7 +2215,7 @@ where
         }
 
         trace!(target: "engine::tree", block=?block.num_hash(), "Executing block");
-        let executor = self.executor_provider.executor(StateProviderDatabase::new(&state_provider));
+        let executor = self.executor_provider.executor(&state_provider);
 
         let block_number = block.number();
         let block_hash = block.hash();

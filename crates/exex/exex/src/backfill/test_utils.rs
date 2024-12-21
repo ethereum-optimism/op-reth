@@ -17,7 +17,6 @@ use reth_provider::{
     providers::ProviderNodeTypes, BlockWriter as _, ExecutionOutcome, LatestStateProviderRef,
     ProviderFactory,
 };
-use reth_revm::database::StateProviderDatabase;
 use reth_testing_utils::generators::sign_tx_with_key_pair;
 use secp256k1::Keypair;
 
@@ -70,7 +69,7 @@ where
 
     // Execute the block to produce a block execution output
     let mut block_execution_output = EthExecutorProvider::ethereum(chain_spec)
-        .executor(StateProviderDatabase::new(LatestStateProviderRef::new(&provider)))
+        .executor(LatestStateProviderRef::new(&provider))
         .execute(BlockExecutionInput { block, total_difficulty: U256::ZERO })?;
     block_execution_output.state.reverts.sort();
 
@@ -204,7 +203,7 @@ where
     let provider = provider_factory.provider()?;
 
     let executor = EthExecutorProvider::ethereum(chain_spec)
-        .batch_executor(StateProviderDatabase::new(LatestStateProviderRef::new(&provider)));
+        .batch_executor(LatestStateProviderRef::new(&provider));
 
     let mut execution_outcome = executor.execute_and_verify_batch(vec![
         (&block1, U256::ZERO).into(),

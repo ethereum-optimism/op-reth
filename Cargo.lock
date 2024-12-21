@@ -7711,6 +7711,7 @@ dependencies = [
  "reth-execution-types",
  "reth-primitives",
  "reth-revm",
+ "reth-storage-api",
  "reth-testing-utils",
  "revm-primitives",
  "secp256k1",

@@ -71,9 +71,7 @@ where
 
         // Setup database.
         let mut db = StateBuilder::new()
-            .with_database(StateProviderDatabase::new(
-                self.provider.state_by_block_hash(parent_header.hash())?,
-            ))
+            .with_database(self.provider.state_by_block_hash(parent_header.hash())?)
             .with_bundle_update()
             .build();
 

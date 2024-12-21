@@ -24,7 +24,6 @@ use reth_provider::{
     DatabaseProviderFactory, HeaderProvider, LatestStateProviderRef, OriginalValuesKnown,
     ProviderError, ProviderFactory, StateWriter, StorageLocation,
 };
-use reth_revm::database::StateProviderDatabase;
 use reth_stages::{
     stages::{AccountHashingStage, MerkleStage, StorageHashingStage},
     ExecInput, Stage, StageCheckpoint,
@@ -161,9 +160,8 @@ impl<C: ChainSpecParser<ChainSpec = ChainSpec>> Command<C> {
             provider_rw.insert_block(sealed_block.clone(), StorageLocation::Database)?;
 
             td += sealed_block.difficulty;
-            let mut executor = executor_provider.batch_executor(StateProviderDatabase::new(
-                LatestStateProviderRef::new(&provider_rw),
-            ));
+            let mut executor =
+                executor_provider.batch_executor(LatestStateProviderRef::new(&provider_rw));
             executor.execute_and_verify_one((&sealed_block.clone().unseal(), td).into())?;
             let execution_outcome = executor.finalize();
 

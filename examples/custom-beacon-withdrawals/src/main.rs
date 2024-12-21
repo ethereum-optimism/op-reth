@@ -92,11 +92,11 @@ pub struct CustomExecutorStrategyFactory {
 
 impl BlockExecutionStrategyFactory for CustomExecutorStrategyFactory {
     type Primitives = EthPrimitives;
-    type Strategy<DB: Database<Error: Into<ProviderError> + Display>> = CustomExecutorStrategy<DB>;
+    type Strategy<DB: EvmStateProvider> = CustomExecutorStrategy<DB>;
 
     fn create_strategy<DB>(&self, db: DB) -> Self::Strategy<DB>
     where
-        DB: Database<Error: Into<ProviderError> + Display>,
+        DB: EvmStateProvider,
     {
         let state =
             State::builder().with_database(db).with_bundle_update().without_state_clear().build();
@@ -110,7 +110,7 @@ impl BlockExecutionStrategyFactory for CustomExecutorStrategyFactory {
 
 pub struct CustomExecutorStrategy<DB>
 where
-    DB: Database<Error: Into<ProviderError> + Display>,
+    DB: EvmStateProvider,
 {
     /// The chainspec
     chain_spec: Arc<ChainSpec>,
@@ -122,7 +122,7 @@ where
 
 impl<DB> CustomExecutorStrategy<DB>
 where
-    DB: Database<Error: Into<ProviderError> + Display>,
+    DB: EvmStateProvider,
 {
     /// Configures a new evm configuration and block environment for the given block.
     ///
@@ -142,7 +142,7 @@ where
 
 impl<DB> BlockExecutionStrategy for CustomExecutorStrategy<DB>
 where
-    DB: Database<Error: Into<ProviderError> + Display>,
+    DB: EvmStateProvider,
 {
     type DB = DB;
     type Primitives = EthPrimitives;

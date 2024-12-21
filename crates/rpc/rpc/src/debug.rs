@@ -104,7 +104,7 @@ where
         self.eth_api()
             .spawn_with_state_at_block(block.parent_hash().into(), move |state| {
                 let mut results = Vec::with_capacity(block.body.transactions().len());
-                let mut db = CacheDB::new(StateProviderDatabase::new(state));
+                let mut db = CacheDB::new(state);
 
                 this.eth_api().apply_pre_execution_changes(&block, &mut db, &cfg, &block_env)?;
 
@@ -254,7 +254,7 @@ where
                 // configure env for the target transaction
                 let tx = transaction.into_recovered();
 
-                let mut db = CacheDB::new(StateProviderDatabase::new(state));
+                let mut db = CacheDB::new(state);
 
                 this.eth_api().apply_pre_execution_changes(
                     &block,
@@ -545,7 +545,7 @@ where
             .spawn_with_state_at_block(at.into(), move |state| {
                 // the outer vec for the bundles
                 let mut all_bundles = Vec::with_capacity(bundles.len());
-                let mut db = CacheDB::new(StateProviderDatabase::new(state));
+                let mut db = CacheDB::new(state);
 
                 if replay_block_txs {
                     // only need to replay the transactions in the block if not all transactions are
@@ -635,7 +635,7 @@ where
 
         self.eth_api()
             .spawn_with_state_at_block(block.parent_hash().into(), move |state_provider| {
-                let db = StateProviderDatabase::new(&state_provider);
+                let db = &state_provider;
                 let block_executor = this.inner.block_executor.executor(db);
 
                 let mut witness_record = ExecutionWitnessRecord::default();
