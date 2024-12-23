@@ -543,7 +543,7 @@ mod tests {
     use core::marker::PhantomData;
     use reth_chainspec::{ChainSpec, MAINNET};
     use reth_primitives::EthPrimitives;
-    use revm::db::{CacheDB, EmptyDBTyped};
+    use reth_storage_api::noop::NoopProvider;
     use revm_primitives::{address, bytes, AccountInfo, TxEnv, KECCAK_EMPTY};
     use std::sync::Arc;
 
@@ -738,7 +738,7 @@ mod tests {
     #[test]
     fn test_provider() {
         let provider = TestExecutorProvider;
-        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+        let db = NoopProvider::default();
         let executor = provider.executor(db);
         let _ = executor.execute(BlockExecutionInput::new(&Default::default(), U256::ZERO));
     }
@@ -761,7 +761,7 @@ mod tests {
             finish_result: expected_finish_result.clone(),
         };
         let provider = BasicBlockExecutorProvider::new(strategy_factory);
-        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+        let db = NoopProvider::default();
         let executor = provider.executor(db);
         let result = executor.execute(BlockExecutionInput::new(&Default::default(), U256::ZERO));
 
@@ -784,7 +784,7 @@ mod tests {
             finish_result: BundleState::default(),
         };
         let provider = BasicBlockExecutorProvider::new(strategy_factory);
-        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+        let db = NoopProvider::default();
 
         // if we want to apply tx env overrides the executor must be mut.
         let mut executor = provider.executor(db);
@@ -801,9 +801,10 @@ mod tests {
         addr: Address,
         balance: u128,
         nonce: u64,
-    ) -> State<CacheDB<EmptyDBTyped<BlockExecutionError>>> {
-        let db = CacheDB::<EmptyDBTyped<BlockExecutionError>>::default();
-        let mut state = State::builder().with_database(db).with_bundle_update().build();
+    ) -> State<StateProviderDatabase<NoopProvider>> {
+        let db = NoopProvider::default();
+        let mut state =
+            State::builder().with_database(StateProviderDatabase(db)).with_bundle_update().build();
 
         let account_info = AccountInfo {
             balance: U256::from(balance),
@@ -830,7 +831,7 @@ mod tests {
     #[test]
     fn test_balance_increment_state_empty_increments_map() {
         let mut state = State::builder()
-            .with_database(CacheDB::<EmptyDBTyped<BlockExecutionError>>::default())
+            .with_database(StateProviderDatabase(NoopProvider::default()))
             .with_bundle_update()
             .build();
 
