@@ -13,8 +13,8 @@ use reth_primitives::{NodePrimitives, SealedBlockWithSenders, SealedHeader};
 use reth_primitives_traits::SignedTransaction;
 use reth_provider::{BlockExecutionOutput, ChainSpecProvider, StateProviderFactory};
 use reth_revm::{
-    database::StateProviderDatabase, db::states::bundle_state::BundleRetention,
-    primitives::EnvWithHandlerCfg, DatabaseCommit, StateBuilder,
+    db::states::bundle_state::BundleRetention, primitives::EnvWithHandlerCfg, DatabaseCommit,
+    StateBuilder, StateProviderDatabase,
 };
 use reth_rpc_api::DebugApiClient;
 use reth_tracing::tracing::warn;
@@ -71,7 +71,9 @@ where
 
         // Setup database.
         let mut db = StateBuilder::new()
-            .with_database(self.provider.state_by_block_hash(parent_header.hash())?)
+            .with_database(StateProviderDatabase(
+                self.provider.state_by_block_hash(parent_header.hash())?,
+            ))
             .with_bundle_update()
             .build();
 
