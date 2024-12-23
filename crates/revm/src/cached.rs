@@ -191,6 +191,54 @@ impl<DB: AccountReader> AccountReader for CachedReadsDbMut<'_, DB> {
     }
 }
 
+impl<DB: BlockHashReader> BlockHashReader for CachedReadsDbMut<'_, DB> {
+    fn block_hash(&self, number: BlockNumber) -> ProviderResult<Option<B256>> {
+        let hit = self.cached.block_hashes.get(&number);
+        if hit.is_some() {
+            return Ok(hit.copied())
+        }
+
+        let db_read = self.db.block_hash(number)?;
+        if let Some(hash) = db_read {
+            let cache = &self.cached;
+            // safe because CachedReadsDbMut ensure exclusive write access to cache
+            unsafe {
+                _ = (*(*cache as *const CachedReads as *mut CachedReads))
+                    .block_hashes
+                    .insert(number, hash)
+            }
+        }
+
+        Ok(db_read)
+    }
+
+    fn canonical_hashes_range(
+        &self,
+        start: BlockNumber,
+        end: BlockNumber,
+    ) -> ProviderResult<Vec<B256>> {
+        let range = start..end;
+        if range.is_empty() {
+            return Ok(vec![])
+        }
+
+        if self.block_hash(start)?.is_some() && self.block_hash(end)?.is_some() {
+            // optimistically collect hashes
+            let hashes = range
+                .into_iter()
+                .map_while(|block_num| self.block_hash(block_num).ok().flatten())
+                .collect::<Vec<B256>>();
+            // safe subtraction, already checked end is higher than start with call to
+            // `ops::Range::is_empty`
+            if hashes.len() as u64 == end - start {
+                return Ok(hashes)
+            }
+        }
+
+        Ok(vec![])
+    }
+}
+
 impl<DB: StateRootProvider> StateRootProvider for CachedReadsDbMut<'_, DB> {
     fn state_root(&self, hashed_state: HashedPostState) -> ProviderResult<B256> {
         self.db.state_root(hashed_state)
@@ -329,54 +377,6 @@ impl<DB: StateProvider> StateProvider for CachedReadsDbMut<'_, DB> {
         }
 
         Ok(db_read)
-    }
-}
-
-impl<DB: BlockHashReader> BlockHashReader for CachedReadsDbMut<'_, DB> {
-    fn block_hash(&self, number: BlockNumber) -> ProviderResult<Option<B256>> {
-        let hit = self.cached.block_hashes.get(&number);
-        if hit.is_some() {
-            return Ok(hit.copied())
-        }
-
-        let db_read = self.db.block_hash(number)?;
-        if let Some(hash) = db_read {
-            let cache = &self.cached;
-            // safe because CachedReadsDbMut ensure exclusive write access to cache
-            unsafe {
-                _ = (*(*cache as *const CachedReads as *mut CachedReads))
-                    .block_hashes
-                    .insert(number, hash)
-            }
-        }
-
-        Ok(db_read)
-    }
-
-    fn canonical_hashes_range(
-        &self,
-        start: BlockNumber,
-        end: BlockNumber,
-    ) -> ProviderResult<Vec<B256>> {
-        let range = start..end;
-        if range.is_empty() {
-            return Ok(vec![])
-        }
-
-        if self.block_hash(start)?.is_some() && self.block_hash(end)?.is_some() {
-            // optimistically collect hashes
-            let hashes = range
-                .into_iter()
-                .map_while(|block_num| self.block_hash(block_num).ok().flatten())
-                .collect::<Vec<B256>>();
-            // safe subtraction, already checked end is higher than start with call to
-            // `ops::Range::is_empty`
-            if hashes.len() as u64 == end - start {
-                return Ok(hashes)
-            }
-        }
-
-        Ok(vec![])
     }
 }
 
