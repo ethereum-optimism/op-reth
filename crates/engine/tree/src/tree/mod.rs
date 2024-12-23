@@ -45,7 +45,6 @@ use reth_provider::{
     HashedPostStateProvider, ProviderError, StateCommitmentProvider, StateProviderBox,
     StateProviderFactory, StateReader, StateRootProvider, TransactionVariant,
 };
-use reth_revm::database::StateProviderDatabase;
 use reth_stages_api::ControlFlow;
 use reth_trie::{updates::TrieUpdates, HashedPostState, TrieInput};
 use reth_trie_parallel::root::{ParallelStateRoot, ParallelStateRootError};

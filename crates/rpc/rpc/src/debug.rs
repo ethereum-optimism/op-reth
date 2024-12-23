@@ -26,7 +26,7 @@ use reth_provider::{
     BlockIdReader, BlockReaderIdExt, ChainSpecProvider, EvmEnvProvider, HeaderProvider,
     ProviderBlock, ReceiptProviderIdExt, StateProofProvider, TransactionVariant,
 };
-use reth_revm::{database::StateProviderDatabase, witness::ExecutionWitnessRecord};
+use reth_revm::witness::ExecutionWitnessRecord;
 use reth_rpc_api::DebugApiServer;
 use reth_rpc_eth_api::{
     helpers::{EthTransactions, TraceExt},
