@@ -22,7 +22,7 @@ use reth_primitives_traits::{constants::GAS_LIMIT_BOUND_DIVISOR, Block as _, Blo
 use reth_provider::{
     BlockExecutionInput, BlockExecutionOutput, BlockReaderIdExt, StateProviderFactory,
 };
-use reth_revm::{cached::CachedReads, database::StateProviderDatabase};
+use reth_revm::cached::CachedReads;
 use reth_rpc_api::BlockSubmissionValidationApiServer;
 use reth_rpc_server_types::result::internal_rpc_err;
 use reth_tasks::TaskSpawner;
@@ -147,7 +147,7 @@ where
 
         let mut request_cache = self.cached_reads(latest_header_hash).await;
 
-        let cached_db = request_cache.as_db_mut(StateProviderDatabase::new(&state_provider));
+        let cached_db = request_cache.as_db_mut(&state_provider);
         let executor = self.executor_provider.executor(cached_db);
 
         let block = block.unseal();
