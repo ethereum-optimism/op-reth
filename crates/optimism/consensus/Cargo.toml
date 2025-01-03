@@ -47,7 +47,7 @@ reth-db-common.workspace = true
 alloy-primitives.workspace = true
 op-alloy-consensus.workspace = true
 reth-optimism-chainspec.workspace = true
-reth-optimism-node.workspace = true
+reth-optimism-node = { workspace = true, features = ["optimism"] }
 
 [features]
 optimism = [
