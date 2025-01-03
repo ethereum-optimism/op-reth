@@ -8405,6 +8405,7 @@ dependencies = [
 name = "reth-optimism-consensus"
 version = "1.1.4"
 dependencies = [
+ "alloy-chains",
  "alloy-consensus",
  "alloy-eips",
  "alloy-primitives",

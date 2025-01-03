@@ -60,6 +60,7 @@ mod test {
     use core::str::FromStr;
     use std::sync::Arc;
 
+    use alloy_chains::Chain;
     use alloy_consensus::Header;
     use alloy_primitives::{keccak256, B256, U256};
     use reth_db_common::init::init_genesis;
@@ -96,7 +97,7 @@ mod test {
         // note: must be empty (default) chain spec to ensure storage is empty after init genesis,
         // otherwise can't use `storage_root_prehashed` to determine storage root later
         let provider_factory = create_test_provider_factory_with_node_types::<OpNode>(Arc::new(
-            OpChainSpecBuilder::default().build(),
+            OpChainSpecBuilder::default().chain(Chain::dev()).genesis(Default::default()).build(),
         ));
         let _ = init_genesis(&provider_factory).unwrap();
 

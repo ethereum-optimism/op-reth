@@ -33,8 +33,7 @@ mod proof;
 pub use proof::calculate_receipt_root_no_memo_optimism;
 
 pub mod validation;
-pub use validation::validate_block_post_execution;
-use validation::{canyon, isthmus};
+pub use validation::{canyon, isthmus, validate_block_post_execution};
 
 pub mod error;
 pub use error::OpConsensusError;
