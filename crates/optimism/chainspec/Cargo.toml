@@ -65,4 +65,3 @@ std = [
 	"serde_json/std",
 	"op-alloy-consensus/std"
 ]
-test-utils = []
