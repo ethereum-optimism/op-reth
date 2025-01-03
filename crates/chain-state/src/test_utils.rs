@@ -34,7 +34,7 @@ use tokio::sync::broadcast::{self, Sender};
 /// Functionality to build blocks for tests and help with assertions about
 /// their execution.
 #[derive(Debug)]
-pub struct TestBlockBuilder<N: NodePrimitives = reth_primitives::EthPrimitives> {
+pub struct TestBlockBuilder<N: NodePrimitives = EthPrimitives> {
     /// The account that signs all the block's transactions.
     pub signer: Address,
     /// Private key for signing.
@@ -66,7 +66,7 @@ impl<N: NodePrimitives> Default for TestBlockBuilder<N> {
     }
 }
 
-impl TestBlockBuilder {
+impl<N: NodePrimitives> TestBlockBuilder<N> {
     /// Signer pk setter.
     pub fn with_signer_pk(mut self, signer_pk: PrivateKeySigner) -> Self {
         self.signer = signer_pk.address();
@@ -168,14 +168,14 @@ impl TestBlockBuilder {
             ..Default::default()
         };
 
-        let block = SealedBlock {
-            header: SealedHeader::seal(header),
-            body: BlockBody {
+        let block = SealedBlock::new(
+            SealedHeader::seal(header),
+            BlockBody {
                 transactions: transactions.into_iter().map(|tx| tx.into_signed()).collect(),
                 ommers: Vec::new(),
                 withdrawals: Some(vec![].into()),
             },
-        };
+        );
 
         SealedBlockWithSenders::new(block, vec![self.signer; num_txs as usize]).unwrap()
     }
@@ -259,7 +259,7 @@ impl TestBlockBuilder {
     /// updated.
     pub fn get_execution_outcome(&mut self, block: SealedBlockWithSenders) -> ExecutionOutcome {
         let receipts = block
-            .body
+            .body()
             .transactions
             .iter()
             .enumerate()
@@ -273,7 +273,7 @@ impl TestBlockBuilder {
 
         let mut bundle_state_builder = BundleState::builder(block.number..=block.number);
 
-        for tx in &block.body.transactions {
+        for tx in &block.body().transactions {
             self.signer_execute_account_info.balance -= Self::single_tx_cost();
             bundle_state_builder = bundle_state_builder.state_present_account_info(
                 self.signer,
@@ -293,6 +293,13 @@ impl TestBlockBuilder {
         );
 
         execution_outcome.with_receipts(Receipts::from(receipts))
+    }
+}
+
+impl TestBlockBuilder {
+    /// Creates a `TestBlockBuilder` configured for Ethereum primitives.
+    pub fn eth() -> Self {
+        Self::default()
     }
 }
 /// A test `ChainEventSubscriptions`

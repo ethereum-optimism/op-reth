@@ -6,7 +6,6 @@
 # 4) deserialize previously generated test vectors
 
 on:
-
   pull_request:
   merge_group:
   push:

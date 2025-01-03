@@ -73,7 +73,7 @@ pub enum CanonicalError {
     #[error("transaction error on commit: {0}")]
     CanonicalCommit(String),
     /// Error indicating that a previous optimistic sync target was re-orged
-    #[error("transaction error on revert: {0}")]
+    #[error("optimistic sync target was re-orged at block: {0}")]
     OptimisticTargetRevert(BlockNumber),
 }
 
@@ -206,7 +206,7 @@ impl<B: Block> std::fmt::Debug for InsertBlockErrorDataTwo<B> {
             .field("hash", &self.block.hash())
             .field("number", &self.block.number())
             .field("parent_hash", &self.block.parent_hash())
-            .field("num_txs", &self.block.body.transactions().len())
+            .field("num_txs", &self.block.body().transactions().len())
             .finish_non_exhaustive()
     }
 }

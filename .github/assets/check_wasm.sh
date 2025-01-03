@@ -8,8 +8,6 @@ crates=($(cargo metadata --format-version=1 --no-deps | jq -r '.packages[].name'
 # Used with the `contains` function.
 # shellcheck disable=SC2034
 exclude_crates=(
-  # The following are not working yet, but known to be fixable
-  reth-exex-types # https://github.com/paradigmxyz/reth/issues/9946
   # The following require investigation if they can be fixed
   reth-basic-payload-builder
   reth-beacon-consensus
@@ -44,8 +42,6 @@ exclude_crates=(
   reth-node-events
   reth-node-metrics
   reth-optimism-cli
-  reth-optimism-consensus
-  reth-optimism-evm
   reth-optimism-node
   reth-optimism-payload-builder
   reth-optimism-rpc
@@ -72,7 +68,6 @@ exclude_crates=(
   reth-transaction-pool # c-kzg
   reth-trie-parallel # tokio
   reth-testing-utils
-  reth-network-peers
 )
 
 # Array to hold the results

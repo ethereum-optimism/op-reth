@@ -44,6 +44,10 @@ tracing.workspace = true
 reth-provider = { workspace = true, features = ["test-utils"] }
 reth-trie-db.workspace = true
 reth-db-common.workspace = true
+alloy-primitives.workspace = true
+op-alloy-consensus.workspace = true
+reth-optimism-chainspec.workspace = true
+reth-optimism-node.workspace = true
 
 [features]
 optimism = [

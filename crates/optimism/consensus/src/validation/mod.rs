@@ -10,7 +10,8 @@ use reth_chainspec::{ChainSpec, EthereumHardforks};
 use reth_consensus::ConsensusError;
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_forks::OpHardforks;
-use reth_primitives::{gas_spent_by_transactions, BlockWithSenders, GotExpected, Receipt};
+use reth_optimism_primitives::{OpBlock, OpReceipt};
+use reth_primitives::{gas_spent_by_transactions, BlockWithSenders, GotExpected};
 use reth_storage_api::StateProviderFactory;
 use revm::db::BundleState;
 use tracing::{debug, trace};
@@ -20,9 +21,9 @@ use tracing::{debug, trace};
 /// - Compares the receipts root in the block header to the block body
 /// - Compares the gas used in the block header to the actual gas usage after execution
 pub fn validate_block_post_execution<P: StateProviderFactory>(
-    block: &BlockWithSenders,
+    block: &BlockWithSenders<OpBlock>,
     chain_spec: &OpChainSpec,
-    receipts: &[Receipt],
+    receipts: &[OpReceipt],
     state_updates: Option<&BundleState>,
     provider: Option<&P>,
 ) -> Result<(), ConsensusError> {
@@ -36,7 +37,7 @@ pub fn validate_block_post_execution<P: StateProviderFactory>(
             block.header.logs_bloom,
             receipts,
             chain_spec,
-            block.timestamp,
+            block.header.timestamp,
         ) {
             tracing::debug!(%error, ?receipts, "receipts verification failed");
             return Err(error)
@@ -45,10 +46,10 @@ pub fn validate_block_post_execution<P: StateProviderFactory>(
 
     // Check if gas used matches the value set in header.
     let cumulative_gas_used =
-        receipts.last().map(|receipt| receipt.cumulative_gas_used).unwrap_or(0);
-    if block.gas_used != cumulative_gas_used {
+        receipts.last().map(|receipt| receipt.cumulative_gas_used()).unwrap_or(0);
+    if block.header.gas_used != cumulative_gas_used {
         return Err(ConsensusError::BlockGasUsed {
-            gas: GotExpected { got: cumulative_gas_used, expected: block.gas_used },
+            gas: GotExpected { got: cumulative_gas_used, expected: block.header.gas_used },
             gas_spent_by_tx: gas_spent_by_transactions(receipts),
         })
     }
@@ -84,12 +85,12 @@ pub fn validate_block_post_execution<P: StateProviderFactory>(
 fn verify_receipts(
     expected_receipts_root: B256,
     expected_logs_bloom: Bloom,
-    receipts: &[Receipt],
+    receipts: &[OpReceipt],
     chain_spec: &ChainSpec,
     timestamp: u64,
 ) -> Result<(), ConsensusError> {
     // Calculate receipts root.
-    let receipts_with_bloom = receipts.iter().cloned().map(Receipt::with_bloom).collect::<Vec<_>>();
+    let receipts_with_bloom = receipts.iter().cloned().map(Into::into).collect::<Vec<_>>();
     let receipts_root =
         calculate_receipt_root_optimism(&receipts_with_bloom, chain_spec, timestamp);
 

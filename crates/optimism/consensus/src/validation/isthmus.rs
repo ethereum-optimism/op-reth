@@ -56,8 +56,9 @@ mod test {
     use alloy_primitives::{keccak256, B256, U256};
     use reth_db_common::init::init_genesis;
     use reth_optimism_chainspec::OpChainSpec;
+    use reth_optimism_node::OpNode;
     use reth_provider::{
-        providers::BlockchainProvider2, test_utils::create_test_provider_factory_with_chain_spec,
+        providers::BlockchainProvider2, test_utils::create_test_provider_factory_with_node_types,
         StateWriter,
     };
     use reth_trie::{test_utils::storage_root_prehashed, HashedPostState};
@@ -85,8 +86,9 @@ mod test {
         // init test db
         // note: must be empty (default) chain spec to ensure storage is empty after init genesis,
         // otherwise can't use `storage_root_prehashed` to determine storage root later
-        let provider_factory =
-            create_test_provider_factory_with_chain_spec(Arc::new(OpChainSpec::default()));
+        let provider_factory = create_test_provider_factory_with_node_types::<OpNode>(Arc::new(
+            OpChainSpec::default(),
+        ));
         let _ = init_genesis(&provider_factory).unwrap();
 
         // write account storage to database

@@ -15,6 +15,7 @@ use alloc::sync::Arc;
 use core::fmt;
 
 use alloy_consensus::{BlockHeader, Header, EMPTY_OMMER_ROOT_HASH};
+use alloy_eips::eip7840::BlobParams;
 use alloy_primitives::{B64, U256};
 use reth_chainspec::EthereumHardforks;
 use reth_consensus::{
@@ -28,8 +29,8 @@ use reth_consensus_common::validation::{
 };
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_forks::OpHardforks;
-use reth_optimism_primitives::OpPrimitives;
-use reth_primitives::{BlockBody, BlockWithSenders, GotExpected, SealedBlock, SealedHeader};
+use reth_optimism_primitives::{OpBlock, OpBlockBody, OpPrimitives, OpReceipt};
+use reth_primitives::{BlockWithSenders, GotExpected, SealedBlockFor, SealedHeader};
 use reth_storage_api::StateProviderFactory;
 use std::time::SystemTime;
 use tracing::trace;
@@ -66,8 +67,8 @@ where
 {
     fn validate_block_post_execution(
         &self,
-        block: &BlockWithSenders,
-        input: PostExecutionInput<'_>,
+        block: &BlockWithSenders<OpBlock>,
+        input: PostExecutionInput<'_, OpReceipt>,
     ) -> Result<(), ConsensusError> {
         validate_block_post_execution(
             block,
@@ -79,21 +80,24 @@ where
     }
 }
 
-impl<P> Consensus for OpBeaconConsensus<P>
+impl<P> Consensus<Header, OpBlockBody> for OpBeaconConsensus<P>
 where
     P: StateProviderFactory + fmt::Debug,
 {
     fn validate_body_against_header(
         &self,
-        body: &BlockBody,
+        body: &OpBlockBody,
         header: &SealedHeader,
     ) -> Result<(), ConsensusError> {
         validate_body_against_header(body, header.header())
     }
 
-    fn validate_block_pre_execution(&self, block: &SealedBlock) -> Result<(), ConsensusError> {
+    fn validate_block_pre_execution(
+        &self,
+        block: &SealedBlockFor<OpBlock>,
+    ) -> Result<(), ConsensusError> {
         // Check ommers hash
-        let ommers_hash = reth_primitives::proofs::calculate_ommers_root(&block.body.ommers);
+        let ommers_hash = block.body().calculate_ommers_root();
         if block.header.ommers_hash != ommers_hash {
             return Err(ConsensusError::BodyOmmersHashDiff(
                 GotExpected { got: ommers_hash, expected: block.header.ommers_hash }.into(),
@@ -107,7 +111,7 @@ where
 
         // Check empty shanghai-withdrawals
         if self.chain_spec.is_canyon_active_at_timestamp(block.timestamp) {
-            canyon::validate_empty_shanghai_withdrawals(&block.body).map_err(|err| {
+            canyon::validate_empty_shanghai_withdrawals(block.body()).map_err(|err| {
                 trace!(target: "op::consensus",
                     block_number=block.number(),
                     %err,
@@ -182,7 +186,7 @@ where
 
         // ensure that the blob gas fields for this block
         if self.chain_spec.is_cancun_active_at_timestamp(header.timestamp) {
-            validate_against_parent_4844(header.header(), parent.header())?;
+            validate_against_parent_4844(header.header(), parent.header(), BlobParams::cancun())?;
         }
 
         Ok(())

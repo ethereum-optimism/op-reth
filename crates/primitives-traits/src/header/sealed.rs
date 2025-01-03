@@ -156,10 +156,6 @@ impl<H: alloy_consensus::BlockHeader> alloy_consensus::BlockHeader for SealedHea
     fn requests_hash(&self) -> Option<B256> {
         self.deref().requests_hash()
     }
-
-    fn target_blobs_per_block(&self) -> Option<u64> {
-        self.deref().target_blobs_per_block()
-    }
 }
 
 impl<H: InMemorySize> InMemorySize for SealedHeader<H> {

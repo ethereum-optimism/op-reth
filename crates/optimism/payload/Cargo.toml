@@ -40,13 +40,14 @@ revm.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-rlp.workspace = true
-op-alloy-rpc-types-engine.workspace = true
+op-alloy-rpc-types-engine = { workspace = true, features = ["serde"] }
 op-alloy-consensus.workspace = true
 alloy-rpc-types-engine.workspace = true
 alloy-rpc-types-debug.workspace = true
 alloy-consensus.workspace = true
 
 # misc
+derive_more.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 sha2.workspace = true
