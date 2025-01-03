@@ -12,9 +12,11 @@
 extern crate alloc;
 
 pub mod bedrock;
-pub mod transaction;
 
-use reth_primitives_traits::Block;
+pub mod predeploys;
+pub use predeploys::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
+
+pub mod transaction;
 pub use transaction::{signed::OpTransactionSigned, tx_type::OpTxType};
 
 mod receipt;
@@ -40,3 +42,4 @@ impl reth_primitives::NodePrimitives for OpPrimitives {
 }
 
 use once_cell as _;
+use reth_primitives_traits::Block;
