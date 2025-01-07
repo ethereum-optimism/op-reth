@@ -46,7 +46,6 @@ use reth_provider::{
     ExecutionOutcome, HashedPostStateProvider, ProviderError, StateCommitmentProvider,
     StateProviderBox, StateProviderFactory, StateReader, StateRootProvider, TransactionVariant,
 };
-use reth_revm::database::StateProviderDatabase;
 use reth_stages_api::ControlFlow;
 use reth_trie::{
     hashed_cursor::HashedPostStateCursorFactory,
@@ -2247,7 +2246,7 @@ where
         }
 
         trace!(target: "engine::tree", block=?block.num_hash(), "Executing block");
-        let executor = self.executor_provider.executor(StateProviderDatabase::new(&state_provider));
+        let executor = self.executor_provider.executor(&state_provider);
 
         let block_number = block.number();
         let block_hash = block.hash();
