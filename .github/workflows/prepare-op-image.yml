@@ -14,12 +14,12 @@ on:
       context:
         type: string
         description: "Docker context"
-        required: true
+        required: false
         default: "."
       dockerfile:
         type: string
         description: "Dockerfile"
-        required: true
+        required: false
         default: "Dockerfile"
       target:
         type: string
@@ -64,6 +64,7 @@ jobs:
         with:
           context: ./tmp/submodule/${{ inputs.context }}
           file: ./tmp/submodule/${{ inputs.dockerfile }}
+          target: ${{ inputs.target }}
           tags: ${{ inputs.image_tag }}
           outputs: type=docker,dest=./artifacts/${{ inputs.artifact_name }}.tar
           cache-from: type=gha
