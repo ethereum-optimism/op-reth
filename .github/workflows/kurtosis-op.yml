@@ -37,81 +37,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-op-node:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Prepare artifacts directory
-        run: mkdir ./artifacts
-
-      - name: Checkout ${{ inputs.op-node-repo }}@${{ inputs.op-node-ref || 'HEAD' }}
-        run: |
-          mkdir -p ./lib/op-node
-          git clone ${{ inputs.op-node-repo }} ./lib/op-node --recurse-submodules
-          cd ./lib/op-node
-          git checkout ${{ inputs.op-node-ref }}
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build op-node image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./lib/op-node
-          file: ./lib/op-node/ops/docker/op-stack-go/Dockerfile
-          target: op-node-target
-          tags: ghcr.io/ethereum-optimism/op-node:kurtosis-ci
-          outputs: type=docker,dest=./artifacts/op_node_image.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Upload op-node image
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts--op-node
-          path: ./artifacts/op_node_image.tar
-  
   prepare-op-geth:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
+    name: Prepare op-geth docker image
+    uses: ./.github/workflows/prepare-op-image.yml
+    with:
+      repo: ${{ inputs.op-geth-repo }}
+      ref: ${{ inputs.op-geth-ref }}
+      image_tag: ghcr.io/ethereum-optimism/op-geth:kurtosis-ci
+      artifact_name: op_geth_image
 
-      - name: Prepare artifacts directory
-        run: mkdir ./artifacts
-
-      - name: Checkout ${{ inputs.op-geth-repo }}@${{ inputs.op-geth-ref || 'HEAD' }}
-        run: |
-          mkdir -p ./lib/op-geth
-          git clone ${{ inputs.op-geth-repo }} ./lib/op-geth --recurse-submodules
-          cd ./lib/op-geth
-          git checkout ${{ inputs.op-geth-ref }}
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build op-geth image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./lib/op-geth
-          file: ./lib/op-geth/Dockerfile
-          tags: ghcr.io/ethereum-optimism/op-geth:kurtosis-ci
-          outputs: type=docker,dest=./artifacts/op_geth_image.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Upload op-geth images
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts--op-geth
-          path: ./artifacts/op_geth_image.tar
+  prepare-op-node:
+    name: Prepare op-node docker image
+    uses: ./.github/workflows/prepare-op-image.yml
+    with:
+      repo: ${{ inputs.op-node-repo }}
+      ref: ${{ inputs.op-node-ref }}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-node-target
+      image_tag: ghcr.io/ethereum-optimism/op-node:kurtosis-ci
+      artifact_name: op_node_image
 
   prepare-op-reth:
+    name: Prepare op-reth docker image
     uses: ./.github/workflows/prepare-op-reth.yml
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
