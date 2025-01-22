@@ -134,14 +134,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download reth image
+      - name: Download docker image artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: artifacts--*
           merge-multiple: true
           path: /tmp
 
-      - name: Load Docker image
+      - name: Load Docker images
         run: |
           # Load all images from artifacts
           docker load -i /tmp/op_reth_image.tar
