@@ -144,7 +144,7 @@ jobs:
       - name: Load Docker image
         run: |
           # Load all images from artifacts
-          docker load -i /tmp/reth_image.tar
+          docker load -i /tmp/op_reth_image.tar
           docker load -i /tmp/op_geth_image.tar
           docker load -i /tmp/op_node_image.tar
           
