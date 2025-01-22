@@ -73,7 +73,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts--op-geth
+          name: artifacts--${{ inputs.artifact_name }}
           path: ./artifacts/${{ inputs.artifact_name }}.tar
 
       - name: Clean up
