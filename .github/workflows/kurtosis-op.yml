@@ -3,7 +3,20 @@
 name: kurtosis-op
 
 on:
+  push:
+    branches: 
+      - jan/workflow
   workflow_dispatch:
+    inputs:
+      op-node-ref:
+        type: string
+        required: true
+        default: HEAD
+      
+      op-geth-ref:
+        type: string
+        required: true
+        default: HEAD
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,6 +26,76 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare-op-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Prepare artifacts directory
+        run: mkdir ./artifacts
+
+      - name: Checkout optimism@${{ inputs.op-node-ref || 'HEAD' }}
+        run: git checkout ${{ inputs.op-node-ref }}
+        working-directory: ./lib/optimism
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build op-node image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./lib/optimism
+          file: ./lib/optimism/ops/docker/op-stack-go/Dockerfile
+          target: op-node-target
+          tags: ghcr.io/ethereum-optimism/op-node:kurtosis-ci
+          outputs: type=docker,dest=./artifacts/op_node_image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload op-node image
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts--op-node
+          path: ./artifacts/op_node_image.tar
+  
+  prepare-op-geth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Prepare artifacts directory
+        run: mkdir ./artifacts
+
+      - name: Checkout op-geth@${{ inputs.op-geth-ref || 'HEAD' }}
+        run: git checkout ${{ inputs.op-geth-ref }}
+        working-directory: ./lib/op-geth
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build op-geth image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./lib/op-geth
+          file: ./lib/op-geth/Dockerfile
+          tags: ghcr.io/ethereum-optimism/op-geth:kurtosis-ci
+          outputs: type=docker,dest=./artifacts/op_geth_image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload op-geth images
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts--op-geth
+          path: ./artifacts/op_geth_image.tar
+
   prepare-reth:
     uses: ./.github/workflows/prepare-reth.yml
     with:
@@ -29,6 +112,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare-reth
+      - prepare-op-geth
+      - prepare-op-node
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,13 +122,18 @@ jobs:
       - name: Download reth image
         uses: actions/download-artifact@v4
         with:
-          name: artifacts
+          pattern: artifacts--*
+          merge-multiple: true
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker load -i /tmp/reth_image.tar &
-          wait
+          # Load all images from artifacts
+          docker load -i /tmp/reth_image.tar
+          docker load -i /tmp/op_geth_image.tar
+          docker load -i /tmp/op_node_image.tar
+          
+          # List available images
           docker image ls -a
 
       - name: Install Foundry
