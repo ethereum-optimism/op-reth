@@ -1,6 +1,6 @@
 # Runs simple OP stack setup in Kurtosis
 
-name: Run kurtosis (local images)
+name: Run kurtosis (local images) no op-geth
 
 on:
   workflow_dispatch:
