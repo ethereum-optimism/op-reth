@@ -1,33 +1,9 @@
 # Runs simple OP stack setup in Kurtosis
 
-name: kurtosis-op
+name: Run kurtosis (remote images)
 
 on:
   workflow_dispatch:
-    inputs:
-      op-node-repo:
-        type: string
-        required: true
-        description: "An optimizm repo (clone) to use for op-node"
-        default: https://github.com/ethereum-optimism/optimism.git
-
-      op-node-ref:
-        type: string
-        required: true
-        description: "op-node git ref (branch/commit) to use"
-        default: develop
-      
-      op-geth-repo:
-        type: string
-        required: true
-        description: "An op-geth repo (clone) to use for op-geth"
-        default: https://github.com/ethereum-optimism/op-geth.git
-
-      op-geth-ref:
-        type: string
-        required: true
-        description: "op-geth git ref (branch/commit) to use"
-        default: optimism
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,26 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-op-geth:
-    name: Prepare op-geth docker image
-    uses: ./.github/workflows/prepare-op-image.yml
-    with:
-      repo: ${{ inputs.op-geth-repo }}
-      ref: ${{ inputs.op-geth-ref }}
-      image_tag: ghcr.io/ethereum-optimism/op-geth:kurtosis-ci
-      artifact_name: op_geth_image
-
-  prepare-op-node:
-    name: Prepare op-node docker image
-    uses: ./.github/workflows/prepare-op-image.yml
-    with:
-      repo: ${{ inputs.op-node-repo }}
-      ref: ${{ inputs.op-node-ref }}
-      dockerfile: ops/docker/op-stack-go/Dockerfile
-      target: op-node-target
-      image_tag: ghcr.io/ethereum-optimism/op-node:kurtosis-ci
-      artifact_name: op_node_image
-
   prepare-op-reth:
     name: Prepare op-reth docker image
     uses: ./.github/workflows/prepare-op-reth.yml
@@ -74,8 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare-op-reth
-      - prepare-op-geth
-      - prepare-op-node
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,8 +46,6 @@ jobs:
         run: |
           # Load all images from artifacts
           docker load -i /tmp/op_reth_image.tar
-          docker load -i /tmp/op_geth_image.tar
-          docker load -i /tmp/op_node_image.tar
           
           # List available images
           docker image ls -a
@@ -107,7 +59,7 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
           kurtosis engine start
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params.yaml
+          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_remote.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
           RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
