@@ -1333,18 +1333,18 @@ dependencies = [
 
 [[package]]
 name = "bit-set"
-version = "0.5.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
 dependencies = [
  "bit-vec",
 ]
 
 [[package]]
 name = "bit-vec"
-version = "0.6.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bitflags"
@@ -3242,17 +3242,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fastrlp"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce8dba4714ef14b8274c371879b175aa55b16b30f269663f19d576f380018dc4"
-dependencies = [
- "arrayvec",
- "auto_impl",
- "bytes",
-]
-
-[[package]]
 name = "fdlimit"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4700,12 +4689,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libm"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
-
-[[package]]
 name = "libp2p-identity"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4874,95 +4857,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b955cdeb2a02b9117f121ce63aa52d08ade45de53e48fe6a38b39c10f6f709"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "maili-consensus"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6c278346ab9cfef7688510e28a042d8a23c953380e7361a1286920ccbd0d847"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-rlp",
- "alloy-serde",
- "serde",
-]
-
-[[package]]
-name = "maili-flz"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6900ede45d18362a5b2878bd0b5266f885b694c620320fc90fc030a591f445c4"
-
-[[package]]
-name = "maili-genesis"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd104e92bc59effe2707ba89981c6f2cf53521cd3fa22f3734e69d8ff318db82"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-sol-types",
- "maili-serde",
- "serde",
- "serde_repr",
- "thiserror 2.0.11",
-]
-
-[[package]]
-name = "maili-protocol"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3783dd37a00d981ce24259ad0a7859717e882e507749c4abaa372049923b9563"
-dependencies = [
- "alloc-no-stdlib",
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-rlp",
- "alloy-serde",
- "alloy-sol-types",
- "async-trait",
- "brotli",
- "derive_more",
- "maili-consensus",
- "maili-flz",
- "maili-genesis",
- "miniz_oxide",
- "rand 0.8.5",
- "serde",
- "thiserror 2.0.11",
- "tracing",
- "unsigned-varint",
-]
-
-[[package]]
-name = "maili-rpc"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d88cd649231cb01ee6fe876c7ec2535857761118caa55e35c9f9752d5415809"
-dependencies = [
- "alloy-eips",
- "alloy-primitives",
- "derive_more",
- "getrandom 0.2.15",
- "jsonrpsee",
- "maili-protocol",
- "serde",
-]
-
-[[package]]
-name = "maili-serde"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "167d01602386ce9a42375c6b8e984a05e5185f54929a05dd02afd44c18fd6599"
-dependencies = [
- "alloy-primitives",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -5382,7 +5276,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
- "libm",
 ]
 
 [[package]]
@@ -5483,6 +5376,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "op-alloy-flz"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76b44f5edbd5293636934a88ec38d683ee2075bfce43658d1033d76191e7aff6"
+
+[[package]]
 name = "op-alloy-network"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5495,6 +5394,16 @@ dependencies = [
  "alloy-signer",
  "op-alloy-consensus",
  "op-alloy-rpc-types",
+]
+
+[[package]]
+name = "op-alloy-rpc-jsonrpsee"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6446c38f9e3e86acac6f2972a4953ffdd8bfef032bec633b0280a95783c0babd"
+dependencies = [
+ "alloy-primitives",
+ "jsonrpsee",
 ]
 
 [[package]]
@@ -6034,9 +5943,9 @@ dependencies = [
 
 [[package]]
 name = "proptest"
-version = "1.5.0"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c2511913b88df1637da85cc8d96ec8e43a3f8bb8ccb71ee1ac240d6f3df58d"
+checksum = "14cae93065090804185d3b75f0bf93b8eeda30c7a9b4a33d3bdb3988d6229e50"
 dependencies = [
  "bit-set",
  "bit-vec",
@@ -8369,8 +8278,8 @@ dependencies = [
  "derive_more",
  "eyre",
  "futures",
- "maili-flz",
  "op-alloy-consensus",
+ "op-alloy-flz",
  "op-alloy-rpc-types-engine",
  "parking_lot",
  "reth-basic-payload-builder",
@@ -8486,9 +8395,9 @@ dependencies = [
  "alloy-rpc-types-eth",
  "jsonrpsee-core",
  "jsonrpsee-types",
- "maili-rpc",
  "op-alloy-consensus",
  "op-alloy-network",
+ "op-alloy-rpc-jsonrpsee",
  "op-alloy-rpc-types",
  "op-alloy-rpc-types-engine",
  "parking_lot",
@@ -9775,19 +9684,17 @@ dependencies = [
 
 [[package]]
 name = "ruint"
-version = "1.12.4"
+version = "1.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5ef8fb1dd8de3870cb8400d51b4c2023854bbafd5431a3ac7e7317243e22d2f"
+checksum = "2c3cc4c2511671f327125da14133d0c5c5d137f006a1017a16f557bc85b16286"
 dependencies = [
  "alloy-rlp",
  "arbitrary",
  "ark-ff 0.3.0",
  "ark-ff 0.4.2",
  "bytes",
- "fastrlp 0.3.1",
- "fastrlp 0.4.0",
+ "fastrlp",
  "num-bigint",
- "num-integer",
  "num-traits",
  "parity-scale-codec",
  "primitive-types",
@@ -10199,17 +10106,6 @@ dependencies = [
  "percent-encoding",
  "serde",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "serde_repr"
-version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c64451ba24fc7a6a2d60fc75dd9c83c90903b19028d4eff35e88fc1e86564e9"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.96",
 ]
 
 [[package]]
