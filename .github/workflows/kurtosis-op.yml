@@ -3,9 +3,6 @@
 name: kurtosis-op
 
 on:
-  push:
-    branches: 
-      - jan/workflow
   workflow_dispatch:
     inputs:
       op-node-ref:
