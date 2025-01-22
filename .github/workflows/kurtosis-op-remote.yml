@@ -1,6 +1,6 @@
 # Runs simple OP stack setup in Kurtosis
 
-name: kurtosis-op
+name: Run kurtosis (remote images)
 
 on:
   workflow_dispatch:
@@ -13,8 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-reth:
-    uses: ./.github/workflows/prepare-reth.yml
+  prepare-op-reth:
+    name: Prepare op-reth docker image
+    uses: ./.github/workflows/prepare-op-reth.yml
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
       binary_name: op-reth
@@ -28,22 +29,25 @@ jobs:
     name: run kurtosis
     runs-on: ubuntu-latest
     needs:
-      - prepare-reth
+      - prepare-op-reth
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download reth image
+      - name: Download docker image artifacts
         uses: actions/download-artifact@v4
         with:
-          name: artifacts
+          pattern: artifacts--*
+          merge-multiple: true
           path: /tmp
 
-      - name: Load Docker image
+      - name: Load Docker images
         run: |
-          docker load -i /tmp/reth_image.tar &
-          wait
+          # Load all images from artifacts
+          docker load -i /tmp/op_reth_image.tar
+          
+          # List available images
           docker image ls -a
 
       - name: Install Foundry
@@ -55,7 +59,7 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
           kurtosis engine start
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params.yaml
+          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_remote.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
           RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
