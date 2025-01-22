@@ -5434,8 +5434,10 @@ dependencies = [
  "alloy-primitives",
  "alloy-rpc-types-engine",
  "alloy-serde",
+ "ethereum_ssz",
  "op-alloy-consensus",
  "serde",
+ "snap",
  "thiserror 2.0.11",
 ]
 
