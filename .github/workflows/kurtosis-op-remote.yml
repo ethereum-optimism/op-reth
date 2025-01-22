@@ -9,10 +9,10 @@ on:
         description: "Kurtosis arguments file"
         type: choice
         required: true
-        default: kurtosis_op_network_params_local
+        default: kurtosis_op_network_params_remote
         options:
-          - kurtosis_op_network_params_local
-          - kurtosis_op_network_params_local_no_op_geth
+          - kurtosis_op_network_params_remote
+          - kurtosis_op_network_params_remote_no_op_geth
 
 env:
   CARGO_TERM_COLOR: always
