@@ -111,8 +111,8 @@ jobs:
           name: artifacts--op-geth
           path: ./artifacts/op_geth_image.tar
 
-  prepare-reth:
-    uses: ./.github/workflows/prepare-reth.yml
+  prepare-op-reth:
+    uses: ./.github/workflows/prepare-op-reth.yml
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
       binary_name: op-reth
@@ -126,7 +126,7 @@ jobs:
     name: run kurtosis
     runs-on: ubuntu-latest
     needs:
-      - prepare-reth
+      - prepare-op-reth
       - prepare-op-geth
       - prepare-op-node
     steps:
