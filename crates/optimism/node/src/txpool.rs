@@ -8,7 +8,7 @@ use op_alloy_consensus::OpTypedTransaction;
 use parking_lot::RwLock;
 use reth_chainspec::ChainSpec;
 use reth_node_api::{Block, BlockBody};
-use reth_optimism_evm::RethL1BlockInfo;
+use reth_optimism_evm::{OpEvmConfig, RethL1BlockInfo};
 use reth_optimism_primitives::{OpBlock, OpTransactionSigned};
 use reth_primitives::{
     transaction::TransactionConversionError, GotExpected, InvalidTransactionError, Recovered,
@@ -234,6 +234,9 @@ pub struct OpTransactionValidator<Client, Tx> {
     inner: EthTransactionValidator<Client, Tx>,
     /// Additional block info required for validation.
     block_info: Arc<OpL1BlockInfo>,
+    /// An optional EvmConfig.
+    /// This should ONLY be set if interop is enabled.
+    evm: Option<OpEvmConfig>,
     /// If true, ensure that the transaction's sender has enough balance to cover the L1 gas fee
     /// derived from the tracked L1 block info that is extracted from the first transaction in the
     /// L2 block.
@@ -254,6 +257,12 @@ impl<Client, Tx> OpTransactionValidator<Client, Tx> {
     /// Returns the current block timestamp.
     fn block_timestamp(&self) -> u64 {
         self.block_info.timestamp.load(Ordering::Relaxed)
+    }
+
+    /// Sets the `evm` on the [`OpTransactionValidator`].
+    pub fn with_evm_config(self, evm_config: Option<OpEvmConfig>) -> Self {
+        self.evm = evm_config;
+        self
     }
 
     /// Whether to ensure that the transaction's sender has enough balance to also cover the L1 gas
@@ -331,6 +340,22 @@ where
                 transaction,
                 InvalidTransactionError::TxTypeNotSupported.into(),
             )
+        }
+
+        // If the EVM is configured, enable interop tx execution.
+        if let Some(evm) = &self.evm {
+            // Get the current block
+            let current_block = self.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest);
+
+            // Construct the state and db
+            let state = this.state_at_block_id(state_at.into())?;
+            let mut db =
+                CacheDB::new(StateProviderDatabase::new(&state));
+
+
+
+            // TODO: execute transaction using the evm config
+
         }
 
         let outcome = self.inner.validate_one(origin, transaction);
