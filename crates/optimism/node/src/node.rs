@@ -95,11 +95,11 @@ impl OpNode {
             >,
         >,
     {
-        let RollupArgs { disable_txpool_gossip, compute_pending_block, discovery_v4, .. } =
+        let RollupArgs { disable_txpool_gossip, compute_pending_block, interop, discovery_v4, .. } =
             self.args;
         ComponentsBuilder::default()
             .node_types::<Node>()
-            .pool(OpPoolBuilder::default())
+            .pool(OpPoolBuilder { interop, ..Default::default() })
             .payload(
                 OpPayloadBuilder::new(compute_pending_block).with_da_config(self.da_config.clone()),
             )
@@ -340,6 +340,8 @@ where
 pub struct OpPoolBuilder {
     /// Enforced overrides that are applied to the pool config.
     pub pool_config_overrides: PoolBuilderConfigOverrides,
+    /// Whether to enable interop.
+    pub interop: bool,
 }
 
 impl<Node> PoolBuilder<Node> for OpPoolBuilder
@@ -366,6 +368,7 @@ where
         )
         .build_with_tasks(ctx.provider().clone(), ctx.task_executor().clone(), blob_store.clone())
         .map(|validator| {
+                // TODO: use the interop bool here.
             OpTransactionValidator::new(validator)
                 // In --dev mode we can't require gas fees because we're unable to decode
                 // the L1 block info

@@ -30,6 +30,10 @@ pub struct RollupArgs {
     #[arg(long = "rollup.compute-pending-block")]
     pub compute_pending_block: bool,
 
+    /// Enables interop support in the node.
+    #[arg(long = "rollup.interop")]
+    pub interop: bool,
+
     /// enables discovery v4 if provided
     #[arg(long = "rollup.discovery.v4", default_value = "false")]
     pub discovery_v4: bool,
@@ -43,6 +47,7 @@ impl Default for RollupArgs {
             disable_txpool_gossip: false,
             enable_genesis_walkback: false,
             compute_pending_block: false,
+            interop: false,
             discovery_v4: false,
         }
     }
