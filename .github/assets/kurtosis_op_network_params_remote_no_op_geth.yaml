@@ -12,3 +12,4 @@ optimism_package:
       batcher_params:
         extra_params:
           - "--throttle-interval=0"
+          - "--l1.trustrpc=true"
