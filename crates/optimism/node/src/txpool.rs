@@ -17,6 +17,10 @@ use reth_primitives::{
 use reth_primitives_traits::SignedTransaction;
 use reth_provider::{BlockReaderIdExt, StateProviderFactory};
 use reth_revm::L1BlockInfo;
+use reth_revm::db::CacheDB;
+use reth_revm::database::StateProviderDatabase;
+use reth_node_api::ConfigureEvm;
+use reth_node_api::ConfigureEvmEnv;
 use reth_transaction_pool::{
     CoinbaseTipOrdering, EthBlobTransactionSidecar, EthPoolTransaction, EthPooledTransaction,
     EthTransactionValidator, Pool, PoolTransaction, TransactionOrigin,
@@ -237,8 +241,7 @@ impl<Client, Tx> OpTransactionValidator<Client, Tx> {
 
     /// Sets the `evm` on the [`OpTransactionValidator`].
     pub fn with_evm_config(self, evm_config: Option<OpEvmConfig>) -> Self {
-        self.evm = evm_config;
-        self
+        Self { evm: evm_config, ..self }
     }
 
     /// Whether to ensure that the transaction's sender has enough balance to also cover the L1 gas
@@ -282,7 +285,7 @@ where
         inner: EthTransactionValidator<Client, Tx>,
         block_info: OpL1BlockInfo,
     ) -> Self {
-        Self { inner, block_info: Arc::new(block_info), require_l1_data_gas_fee: true }
+        Self { inner, block_info: Arc::new(block_info), evm: None, require_l1_data_gas_fee: true }
     }
 
     /// Update the L1 block info for the given header and system transaction, if any.
@@ -319,19 +322,34 @@ where
         }
 
         // If the EVM is configured, enable interop tx execution.
-        if let Some(evm) = &self.evm {
+        if let Some(evm_cfg) = &self.evm {
             // Get the current block
-            let current_block = self.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest);
+            let block = if let Ok(Some(block)) = self.inner.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest) {
+                block
+            } else {
+                // Failure to get the latest block is a critical error.
+                // Transaction validation must be re-tried.
+                // TODO: fix this error we need a custom type
+                return TransactionValidationOutcome::Invalid(
+                    transaction,
+                    InvalidTransactionError::TxTypeNotSupported.into(),
+                )
+            };
 
-            // Construct the state and db
-            let state = this.state_at_block_id(state_at.into())?;
+            // Construct the state using the current block.
+            let state = self.inner.client().state_by_block_hash(block.hash())?;
             let mut db =
                 CacheDB::new(StateProviderDatabase::new(&state));
 
+            // Configure the evm
+            let mut evm = evm_cfg.evm_for_block(&mut db, &block.header());
 
+            // Construct the environment for the transaction
+            // let sender = transaction.sender();
+            // let mut tx_env = evm_cfg.tx_env(transaction, *sender);
 
-            // TODO: execute transaction using the evm config
-
+            // Transact
+            let _ = evm.transact();
         }
 
         let outcome = self.inner.validate_one(origin, transaction);
