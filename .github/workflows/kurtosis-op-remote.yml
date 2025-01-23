@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-    name: run kurtosis
+    name: Kurtosis with op-geth
     runs-on: ubuntu-latest
     needs:
       - prepare-op-reth
@@ -84,7 +84,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-    name: run kurtosis
+    name: Kurtosis without op-geth
     runs-on: ubuntu-latest
     needs:
       - prepare-op-reth
