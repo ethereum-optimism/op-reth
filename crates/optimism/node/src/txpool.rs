@@ -31,6 +31,7 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc, OnceLock,
 };
+use derive_more::Display;
 
 /// Type alias for default optimism transaction pool
 pub type OpTransactionPool<Client, S> = Pool<
@@ -231,6 +232,15 @@ impl EthPoolTransaction for OpPooledTransaction {
     }
 }
 
+/// An interop transaction validation error.
+#[derive(Debug, Display, Clone, PartialEq, Eq)]
+pub enum InteropValidationError {
+    /// A temporary error occured during transaction validation.
+    Temporary,
+}
+
+impl core::error::Error for InteropValidationError {}
+
 /// Validator for Optimism transactions.
 #[derive(Debug, Clone)]
 pub struct OpTransactionValidator<Client, Tx> {
@@ -353,10 +363,10 @@ where
             } else {
                 // Failure to get the latest block is a critical error.
                 // Transaction validation must be re-tried.
-                // TODO: fix this error we need a custom type
-                return TransactionValidationOutcome::Invalid(
-                    transaction,
-                    InvalidTransactionError::TxTypeNotSupported.into(),
+                reth_tracing::tracing::warn!(target: "reth::txpool", "Transaction validation failed: could not get latest block (interop)");
+                return TransactionValidationOutcome::Error(
+                    *transaction.hash(),
+                    InteropValidationError::Temporary.into(),
                 )
             };
 
