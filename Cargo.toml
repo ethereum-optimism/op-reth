@@ -263,7 +263,7 @@ unarray.opt-level = 3
 [profile.hivetests]
 inherits = "test"
 lto = "thin"
-opt-level = 1
+opt-level = 0
 
 [profile.release]
 codegen-units = 16
