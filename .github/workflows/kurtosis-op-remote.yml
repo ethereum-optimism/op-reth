@@ -129,7 +129,7 @@ jobs:
             BLOCK_RETH=$(cast bn --rpc-url $RETH_RPC)
 
             [ $BLOCK_RETH -ge 100 ] ; then exit 0; fi
-            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH
+            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH"
           done
           kurtosis service logs -a op-devnet op-el-1-op-reth-op-node-op-kurtosis
           kurtosis service logs -a op-devnet op-cl-1-op-node-op-reth-op-kurtosis
