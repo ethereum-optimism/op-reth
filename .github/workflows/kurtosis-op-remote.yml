@@ -3,6 +3,10 @@
 name: Run kurtosis (remote images)
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
   workflow_dispatch:
     inputs:
       args_file:
@@ -68,7 +72,7 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
           kurtosis engine start
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args_file }}.yaml
+          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args_file || 'kurtosis_op_network_params_remote_no_op_geth' }}.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
           RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
