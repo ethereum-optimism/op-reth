@@ -25,8 +25,6 @@ pub use node::{OpNetworkPrimitives, OpNode};
 
 pub mod txpool;
 
-pub mod xpool;
-
 /// Helpers for running test node instances.
 #[cfg(feature = "test-utils")]
 pub mod utils;

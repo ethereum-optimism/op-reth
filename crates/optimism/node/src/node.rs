@@ -351,7 +351,7 @@ where
     type Pool = OpTransactionPool<Node::Provider, DiskFileBlobStore>;
 
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
-        let Self { pool_config_overrides } = self;
+        let Self { pool_config_overrides, interop } = self;
         let data_dir = ctx.config().datadir();
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
@@ -368,11 +368,12 @@ where
         )
         .build_with_tasks(ctx.provider().clone(), ctx.task_executor().clone(), blob_store.clone())
         .map(|validator| {
-                // TODO: use the interop bool here.
             OpTransactionValidator::new(validator)
                 // In --dev mode we can't require gas fees because we're unable to decode
                 // the L1 block info
                 .require_l1_data_gas_fee(!ctx.config().dev.dev)
+                // Only configure `OpEvmConfig` if interop is enabled.
+                .with_evm_config(interop.then_some(OpEvmConfig::new(ctx.chain_spec())))
         });
 
         let transaction_pool = reth_transaction_pool::Pool::new(
