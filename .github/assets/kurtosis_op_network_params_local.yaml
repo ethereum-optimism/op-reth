@@ -17,4 +17,4 @@ optimism_package:
         extra_params:
           - "--throttle-interval=0"
       network_params:
-        isthmus_time: "0"
+        isthmus_time_offset: 0
