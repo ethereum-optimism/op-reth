@@ -209,7 +209,7 @@ impl EthPoolTransaction for OpPooledTransaction {
 /// An interop transaction validation error.
 #[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum InteropValidationError {
-    /// A temporary error occured during transaction validation.
+    /// A temporary error occurred during transaction validation.
     Temporary,
 }
 
