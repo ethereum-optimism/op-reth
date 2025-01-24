@@ -46,6 +46,7 @@ reth-optimism-primitives = { workspace = true, features = ["serde", "serde-binco
 
 # revm with required optimism features
 revm = { workspace = true, features = ["secp256k1", "blst", "c-kzg"] }
+revm-primitives.workspace = true
 
 # ethereum
 alloy-eips.workspace = true
@@ -62,6 +63,7 @@ derive_more.workspace = true
 serde.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
+tracing.workspace = true
 
 # rpc
 serde_json.workspace = true

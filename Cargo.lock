@@ -8319,9 +8319,11 @@ dependencies = [
  "reth-transaction-pool",
  "reth-trie-db",
  "revm",
+ "revm-primitives",
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

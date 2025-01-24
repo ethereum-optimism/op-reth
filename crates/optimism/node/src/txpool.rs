@@ -4,10 +4,11 @@ use alloy_consensus::{
 };
 use alloy_eips::eip2718::Encodable2718;
 use alloy_primitives::{Address, TxHash, TxKind, U256};
+use derive_more::Display;
 use op_alloy_consensus::OpTypedTransaction;
 use parking_lot::RwLock;
 use reth_chainspec::ChainSpec;
-use reth_node_api::{Block, BlockBody};
+use reth_node_api::{Block, BlockBody, ConfigureEvm, ConfigureEvmEnv};
 use reth_optimism_evm::{OpEvmConfig, RethL1BlockInfo};
 use reth_optimism_primitives::{OpBlock, OpTransactionSigned};
 use reth_primitives::{
@@ -16,22 +17,19 @@ use reth_primitives::{
 };
 use reth_primitives_traits::SignedTransaction;
 use reth_provider::{BlockReaderIdExt, StateProviderFactory};
-use reth_revm::L1BlockInfo;
-use reth_revm::db::CacheDB;
-use reth_revm::database::StateProviderDatabase;
-use reth_node_api::ConfigureEvm;
-use reth_node_api::ConfigureEvmEnv;
+use reth_revm::{database::StateProviderDatabase, db::CacheDB, L1BlockInfo};
 use reth_transaction_pool::{
     CoinbaseTipOrdering, EthBlobTransactionSidecar, EthPoolTransaction, EthPooledTransaction,
     EthTransactionValidator, Pool, PoolTransaction, TransactionOrigin,
     TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
 };
 use revm::primitives::{AccessList, KzgSettings};
+use revm_primitives::ResultAndState;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc, OnceLock,
 };
-use derive_more::Display;
+use tracing::{trace, warn};
 
 /// Type alias for default optimism transaction pool
 pub type OpTransactionPool<Client, S> = Pool<
@@ -235,7 +233,7 @@ impl EthPoolTransaction for OpPooledTransaction {
 /// An interop transaction validation error.
 #[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum InteropValidationError {
-    /// A temporary error occured during transaction validation.
+    /// A temporary error occurred during transaction validation.
     Temporary,
 }
 
@@ -293,7 +291,7 @@ impl<Client, Tx> OpTransactionValidator<Client, Tx> {
 
 impl<Client, Tx> OpTransactionValidator<Client, Tx>
 where
-    Client: StateProviderFactory + BlockReaderIdExt,
+    Client: StateProviderFactory + BlockReaderIdExt<Block = OpBlock>,
     Tx: EthPoolTransaction<Consensus = OpTransactionSigned>,
 {
     /// Create a new [`OpTransactionValidator`].
@@ -355,43 +353,7 @@ where
             )
         }
 
-        // If the EVM is configured, enable interop tx execution.
-        if let Some(evm_cfg) = &self.evm {
-            // Get the current block
-            let block = if let Ok(Some(block)) = self.inner.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest) {
-                block
-            } else {
-                // Failure to get the latest block is a critical error.
-                // Transaction validation must be re-tried.
-                reth_tracing::tracing::warn!(target: "reth::txpool", "Transaction validation failed: could not get latest block (interop)");
-                return TransactionValidationOutcome::Error(
-                    *transaction.hash(),
-                    InteropValidationError::Temporary.into(),
-                )
-            };
-
-            // Construct the state using the current block.
-            let state = self.inner.client().state_by_block_hash(block.hash())?;
-            let mut db =
-                CacheDB::new(StateProviderDatabase::new(&state));
-
-            // Configure the evm
-            let mut evm = evm_cfg.evm_for_block(&mut db, &block.header());
-
-            // Construct the environment for the transaction
-            // let sender = transaction.sender();
-            // let mut tx_env = evm_cfg.tx_env(transaction, *sender);
-
-            // Transact
-            let _ = evm.transact();
-        }
-
         let outcome = self.inner.validate_one(origin, transaction);
-
-        if !self.requires_l1_data_gas_fee() {
-            // no need to check L1 gas fee
-            return outcome
-        }
 
         // ensure that the account has enough balance to cover the L1 gas cost
         if let TransactionValidationOutcome::Valid {
@@ -401,34 +363,100 @@ where
             propagate,
         } = outcome
         {
-            let mut l1_block_info = self.block_info.l1_block_info.read().clone();
+            if self.requires_l1_data_gas_fee() {
+                // need to check L1 gas fee
 
-            let mut encoded = Vec::with_capacity(valid_tx.transaction().encoded_length());
-            let tx = valid_tx.transaction().clone_into_consensus();
-            tx.encode_2718(&mut encoded);
+                let mut l1_block_info = self.block_info.l1_block_info.read().clone();
 
-            let cost_addition = match l1_block_info.l1_tx_data_fee(
-                self.chain_spec(),
-                self.block_timestamp(),
-                &encoded,
-                false,
-            ) {
-                Ok(cost) => cost,
-                Err(err) => {
-                    return TransactionValidationOutcome::Error(*valid_tx.hash(), Box::new(err))
-                }
-            };
-            let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
+                let mut encoded = Vec::with_capacity(valid_tx.transaction().encoded_length());
+                let tx = valid_tx.transaction().clone_into_consensus();
+                tx.encode_2718(&mut encoded);
 
-            // Checks for max cost
-            if cost > balance {
-                return TransactionValidationOutcome::Invalid(
-                    valid_tx.into_transaction(),
-                    InvalidTransactionError::InsufficientFunds(
-                        GotExpected { got: balance, expected: cost }.into(),
+                let cost_addition = match l1_block_info.l1_tx_data_fee(
+                    self.chain_spec(),
+                    self.block_timestamp(),
+                    &encoded,
+                    false,
+                ) {
+                    Ok(cost) => cost,
+                    Err(err) => {
+                        return TransactionValidationOutcome::Error(*valid_tx.hash(), Box::new(err))
+                    }
+                };
+                let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
+
+                // Checks for max cost
+                if cost > balance {
+                    return TransactionValidationOutcome::Invalid(
+                        valid_tx.into_transaction(),
+                        InvalidTransactionError::InsufficientFunds(
+                            GotExpected { got: balance, expected: cost }.into(),
+                        )
+                        .into(),
                     )
-                    .into(),
-                )
+                }
+            }
+
+            // If the EVM is configured, enable interop tx execution.
+            if let Some(evm_cfg) = &self.evm {
+                // Get the current block
+                let block = if let Ok(Some(block)) =
+                    self.inner.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest)
+                {
+                    block
+                } else {
+                    // Failure to get the latest block is a critical error.
+                    // Transaction validation must be re-tried.
+                    warn!(target: "reth::txpool",
+                        "Transaction validation failed: could not get latest block (interop)"
+                    );
+                    return TransactionValidationOutcome::Error(
+                        *valid_tx.hash(),
+                        InteropValidationError::Temporary.into(),
+                    )
+                };
+
+                // Construct the state using the current block.
+                let Ok(state) = self.inner.client().state_by_block_hash(block.header().hash())
+                else {
+                    warn!(target: "reth::txpool",
+                        "Transaction execution failed: failed to load state"
+                    );
+                    return TransactionValidationOutcome::Error(
+                        *valid_tx.hash(),
+                        InteropValidationError::Temporary.into(),
+                    )
+                };
+                let mut db = CacheDB::new(StateProviderDatabase::new(&state));
+
+                // Configure the evm
+                let mut evm = evm_cfg.evm_for_block(&mut db, block.header());
+
+                // Construct the environment for the transaction
+                let sender = valid_tx.transaction().sender();
+                let mut tx_env = evm_cfg.tx_env(valid_tx.transaction(), sender);
+
+                // Transact
+                let logs = match evm.transact(tx_env) {
+                    Ok(ResultAndState { result, .. }) => result.logs(),
+                    Err(err) => {
+                        warn!(target: "reth::txpool",
+                            %err,
+                            "Transaction execution failed"
+                        );
+                        return TransactionValidationOutcome::Error(
+                            *valid_tx.hash(),
+                            InteropValidationError::Temporary.into(),
+                        )
+                    }
+                };
+                trace!(target: "reth::txpool",
+                    tx_hash = %valid_tx.hash(),
+                    "Tx executed successfully"
+                );
+                // todo: parse logs to extract executing message if any (sync)
+                // todo: if any executing message, return in valid variant as Some(msg)
+                // todo: from caller of this func, make async call to supervisor api.
             }
 
             return TransactionValidationOutcome::Valid {
