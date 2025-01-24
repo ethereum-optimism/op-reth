@@ -33,7 +33,7 @@ alloy-rlp.workspace = true
 alloy-consensus.workspace = true
 
 # optimism
-maili-protocol.workspace = true
+# maili-protocol.workspace = true
 
 # async/futures
 futures-util.workspace = true

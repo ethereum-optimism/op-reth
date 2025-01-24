@@ -4858,62 +4858,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "maili-consensus"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6c278346ab9cfef7688510e28a042d8a23c953380e7361a1286920ccbd0d847"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-rlp",
-]
-
-[[package]]
-name = "maili-flz"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6900ede45d18362a5b2878bd0b5266f885b694c620320fc90fc030a591f445c4"
-
-[[package]]
-name = "maili-genesis"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd104e92bc59effe2707ba89981c6f2cf53521cd3fa22f3734e69d8ff318db82"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-sol-types",
- "thiserror 2.0.9",
-]
-
-[[package]]
-name = "maili-protocol"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3783dd37a00d981ce24259ad0a7859717e882e507749c4abaa372049923b9563"
-dependencies = [
- "alloc-no-stdlib",
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-rlp",
- "alloy-sol-types",
- "async-trait",
- "brotli",
- "derive_more",
- "maili-consensus",
- "maili-flz",
- "maili-genesis",
- "miniz_oxide",
- "rand 0.8.5",
- "thiserror 2.0.9",
- "tracing",
- "unsigned-varint",
-]
-
-[[package]]
 name = "match_cfg"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9376,7 +9320,6 @@ dependencies = [
  "bitflags 2.6.0",
  "codspeed-criterion-compat",
  "futures-util",
- "maili-protocol",
  "metrics",
  "parking_lot",
  "paste",
