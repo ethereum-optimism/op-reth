@@ -14,5 +14,3 @@ optimism_package:
       batcher_params:
         extra_params:
           - "--throttle-interval=0"
-      network_params:
-        isthmus_time_offset: 0

@@ -5,15 +5,6 @@ name: Run kurtosis (local images)
 on:
   workflow_dispatch:
     inputs:
-      args_file:
-        description: "Kurtosis arguments file"
-        type: choice
-        required: true
-        default: kurtosis_op_network_params_local
-        options:
-          - kurtosis_op_network_params_local
-          - kurtosis_op_network_params_local_no_op_geth
-
       op-node-repo:
         type: string
         required: true
@@ -116,7 +107,7 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
           kurtosis engine start
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args_file }}.yaml
+          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
           RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
