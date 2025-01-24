@@ -332,7 +332,7 @@ where
         }
 
         // If the EVM is configured, enable interop tx execution.
-        if let Some(evm_cfg) = &self.evm {
+        if let Some(op_evm_cfg) = &self.evm {
             // Get the current block
             let block = if let Ok(Some(block)) = self.inner.client().block_by_number_or_tag(alloy_eips::BlockNumberOrTag::Latest) {
                 block
@@ -350,6 +350,16 @@ where
             let state = self.inner.client().state_by_block_hash(block.hash())?;
             let mut db =
                 CacheDB::new(StateProviderDatabase::new(&state));
+
+            // Construct the `EvmEnv` using the parent block header and `NextBlockEnvAttributes`.
+            let attributes = todo!(); // How do I construct this?
+            let parent = block.header(); // TODO: do we need to get the parent block?
+            let evm_env = op_evm_cfg.next_cfg_and_block_env(parent, attributes)?;
+
+            // Get the EVM using the `ConfigureEvm` trait.
+            let evm = op_evm_cfg.evm_with_env(&mut db, evm_env)
+
+
 
             // Configure the evm
             let mut evm = evm_cfg.evm_for_block(&mut db, &block.header());
