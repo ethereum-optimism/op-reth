@@ -95,8 +95,9 @@ impl OpNode {
             >,
         >,
     {
-        let RollupArgs { disable_txpool_gossip, compute_pending_block, interop, discovery_v4, .. } =
-            self.args;
+        let RollupArgs {
+            disable_txpool_gossip, compute_pending_block, interop, discovery_v4, ..
+        } = self.args;
         ComponentsBuilder::default()
             .node_types::<Node>()
             .pool(OpPoolBuilder { interop, ..Default::default() })

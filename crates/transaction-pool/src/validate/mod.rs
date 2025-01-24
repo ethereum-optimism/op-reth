@@ -10,6 +10,7 @@ use alloy_eips::eip4844::BlobTransactionSidecar;
 use alloy_primitives::{Address, TxHash, B256, U256};
 use futures_util::future::Either;
 use reth_primitives::{RecoveredTx, SealedBlock};
+//use maili_protocol::ExecutingMessage;
 use std::{fmt, future::Future, time::Instant};
 
 mod constants;
@@ -46,6 +47,8 @@ pub enum TransactionValidationOutcome<T: PoolTransaction> {
         transaction: ValidTransaction<T>,
         /// Whether to propagate the transaction to the network.
         propagate: bool,
+        // Executing message, extracted from log if this is cross-chain transaction.
+        //executing_message: Option<ExecutingMessage>,
     },
     /// The transaction is considered invalid indefinitely: It violates constraints that prevent
     /// this transaction from ever becoming valid.

@@ -32,6 +32,9 @@ alloy-primitives.workspace = true
 alloy-rlp.workspace = true
 alloy-consensus.workspace = true
 
+# optimism
+maili-protocol.workspace = true
+
 # async/futures
 futures-util.workspace = true
 parking_lot.workspace = true
