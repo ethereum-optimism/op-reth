@@ -417,7 +417,8 @@ where
                 };
 
                 // Construct the state using the current block.
-                let Ok(state) = self.inner.client().state_by_block_hash(block.header().num_hash_slow().hash)
+                let Ok(state) =
+                    self.inner.client().state_by_block_hash(block.header().num_hash_slow().hash)
                 else {
                     warn!(target: "reth::txpool",
                         "Transaction execution failed: failed to load state"
