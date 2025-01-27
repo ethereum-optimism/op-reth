@@ -305,7 +305,7 @@ where
             if block.header().number() == 0 {
                 this.block_info.timestamp.store(block.header().timestamp(), Ordering::Relaxed);
             } else {
-                this.update_l1_block_info(block.header(), block.body().transactions().first());
+                this.update_l1_block_info(block.header(), block.body().transactions().next());
             }
         }
 
@@ -417,7 +417,7 @@ where
                 };
 
                 // Construct the state using the current block.
-                let Ok(state) = self.inner.client().state_by_block_hash(block.header().hash())
+                let Ok(state) = self.inner.client().state_by_block_hash(block.header().num_hash_slow().hash)
                 else {
                     warn!(target: "reth::txpool",
                         "Transaction execution failed: failed to load state"
@@ -434,7 +434,7 @@ where
 
                 // Construct the environment for the transaction
                 let sender = valid_tx.transaction().sender();
-                let mut tx_env = evm_cfg.tx_env(valid_tx.transaction(), sender);
+                let mut tx_env = evm_cfg.tx_env(valid_tx, sender);
 
                 // Transact
                 let logs = match evm.transact(tx_env) {
