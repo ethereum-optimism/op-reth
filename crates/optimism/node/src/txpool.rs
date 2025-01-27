@@ -434,12 +434,15 @@ where
 
                 // Construct the environment for the transaction
                 let sender = valid_tx.transaction().sender();
-                let mut tx_env = evm_cfg.tx_env(valid_tx.transaction().tx(), sender);
+                let tx: &Tx = valid_tx.transaction();
+                let inner_tx: Recovered<OpTransactionSigned> = tx.clone_into_consensus();
+                let tx: &OpTransactionSigned = inner_tx.tx();
+                let tx_env = evm_cfg.tx_env(&tx, sender);
                 *evm.tx_mut() = tx_env;
 
                 // Transact
-                let logs = match evm.transact() {
-                    Ok(ResultAndState { result, .. }) => result.logs(),
+                let _logs = match evm.transact() {
+                    Ok(ResultAndState { result, .. }) => result.into_logs(),
                     Err(err) => {
                         warn!(target: "reth::txpool",
                             %err,
