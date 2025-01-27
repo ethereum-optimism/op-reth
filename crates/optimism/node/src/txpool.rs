@@ -543,8 +543,8 @@ pub struct OpL1BlockInfo {
 //     use reth_primitives::Recovered;
 //     use reth_provider::test_utils::MockEthProvider;
 //     use reth_transaction_pool::{
-//         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder, TransactionOrigin,
-//         TransactionValidationOutcome,
+//         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder,
+//          TransactionOrigin, TransactionValidationOutcome,
 //     };
 //
 //     #[test]
