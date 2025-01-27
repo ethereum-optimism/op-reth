@@ -545,6 +545,7 @@ mod tests {
         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder, TransactionOrigin,
         TransactionValidationOutcome,
     };
+    use reth_provider::{BlockReaderIdExt, StateProviderFactory};
 
     #[test]
     fn validate_optimism_transaction() {
