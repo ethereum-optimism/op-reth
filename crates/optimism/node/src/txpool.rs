@@ -545,9 +545,10 @@ mod tests {
         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder, TransactionOrigin,
         TransactionValidationOutcome,
     };
+
     #[test]
     fn validate_optimism_transaction() {
-        let client = MockEthProvider::default();
+        let client: MockEthProvider<OpTransactionSigned> = MockEthProvider::default();
         let validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
             .no_shanghai()
             .no_cancun()
