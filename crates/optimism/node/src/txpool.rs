@@ -246,7 +246,7 @@ pub struct OpTransactionValidator<Client, Tx> {
     inner: EthTransactionValidator<Client, Tx>,
     /// Additional block info required for validation.
     block_info: Arc<OpL1BlockInfo>,
-    /// An optional EvmConfig.
+    /// An optional `EvmConfig`.
     /// This should ONLY be set if interop is enabled.
     evm: Option<OpEvmConfig>,
     /// If true, ensure that the transaction's sender has enough balance to cover the L1 gas fee
@@ -438,7 +438,7 @@ where
                 let tx: &Tx = valid_tx.transaction();
                 let inner_tx: Recovered<OpTransactionSigned> = tx.clone_into_consensus();
                 let tx: &OpTransactionSigned = inner_tx.tx();
-                let tx_env = evm_cfg.tx_env(&tx, sender);
+                let tx_env = evm_cfg.tx_env(tx, sender);
                 *evm.tx_mut() = tx_env;
 
                 // Transact
