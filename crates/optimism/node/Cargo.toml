@@ -109,6 +109,7 @@ asm-keccak = [
 	"reth-primitives/asm-keccak",
 	"alloy-primitives/asm-keccak",
 	"revm/asm-keccak",
+    "revm-primitives/asm-keccak",
 	"reth-optimism-node/asm-keccak",
 	"reth-node-core/asm-keccak"
 ]
