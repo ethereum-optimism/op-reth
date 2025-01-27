@@ -434,10 +434,11 @@ where
 
                 // Construct the environment for the transaction
                 let sender = valid_tx.transaction().sender();
-                let mut tx_env = evm_cfg.tx_env(valid_tx, sender);
+                let mut tx_env = evm_cfg.tx_env(valid_tx.transaction().tx(), sender);
+                *evm.tx_mut() = tx_env;
 
                 // Transact
-                let logs = match evm.transact(tx_env) {
+                let logs = match evm.transact() {
                     Ok(ResultAndState { result, .. }) => result.logs(),
                     Err(err) => {
                         warn!(target: "reth::txpool",
