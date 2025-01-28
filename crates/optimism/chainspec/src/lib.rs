@@ -424,9 +424,9 @@ impl From<Genesis> for OpChainSpec {
 impl From<ChainSpec> for OpChainSpec {
     fn from(mut inner: ChainSpec) -> Self {
         // under the hood makes header, if not yet init
-        _ = inner.genesis_header();
+        let header = inner.genesis_header();
         // fill once lock with a value, if not yet init
-        _ = inner.genesis_hash.get_or_init(Default::default);
+        _ = inner.genesis_hash.get_or_init(|| header.hash_slow());
 
         if inner.hardforks.is_fork_active_at_timestamp(OpHardfork::Isthmus, inner.genesis.timestamp)
         {
@@ -733,6 +733,7 @@ mod tests {
     #[test]
     fn latest_base_mainnet_fork_id_with_builder() {
         let base_mainnet = OpChainSpecBuilder::base_mainnet().build();
+        assert_eq!(OpHardfork::Isthmus.fork_id(), base_mainnet.latest_fork_id());
         assert_eq!(
             ForkId { hash: ForkHash([0x3a, 0x2a, 0xf1, 0x83]), next: 0 },
             base_mainnet.latest_fork_id()
