@@ -180,7 +180,13 @@ impl OpChainSpecBuilder {
     /// This function panics if the chain ID and genesis is not set ([`Self::chain`] and
     /// [`Self::genesis`])
     pub fn build(self) -> OpChainSpec {
-        OpChainSpec::from(self.inner.build())
+        let inner = self.inner.build();
+        if inner.is_optimism_mainnet() {
+            // for OP mainnet we have to do this because the genesis header can't be properly
+            // computed from the genesis.json file
+            let _ = inner.genesis_hash.set(OP_MAINNET.genesis_hash());
+        }
+        OpChainSpec::from(inner)
     }
 }
 
@@ -612,9 +618,6 @@ mod tests {
     #[test]
     fn op_mainnet_forkids() {
         let op_mainnet = OpChainSpecBuilder::optimism_mainnet().build();
-        // for OP mainnet we have to do this because the genesis header can't be properly computed
-        // from the genesis.json file
-        let _ = op_mainnet.genesis_hash.set(OP_MAINNET.genesis_hash());
         test_fork_ids(
             &op_mainnet,
             &[
