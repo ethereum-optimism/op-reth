@@ -23,13 +23,14 @@ on:
         description: "Optional cargo package path"
 
 jobs:
-  prepare-reth:
+  prepare-op-reth:
     if: github.repository == 'ethereum-optimism/op-reth'
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: mkdir artifacts
+      - uses: rui314/setup-mold@v1
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -53,7 +54,7 @@ jobs:
           context: .
           file: .github/assets/hive/Dockerfile
           tags: ${{ inputs.image_tag }}
-          outputs: type=docker,dest=./artifacts/reth_image.tar
+          outputs: type=docker,dest=./artifacts/op_reth_image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,5 +62,5 @@ jobs:
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
-          path: ./artifacts
+          name: artifacts--op-reth
+          path: ./artifacts/op_reth_image.tar
