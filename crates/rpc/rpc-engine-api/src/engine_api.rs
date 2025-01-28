@@ -1053,7 +1053,7 @@ mod tests {
         };
 
         let chain_spec: Arc<ChainSpec> = MAINNET.clone();
-        let provider = Arc::new(MockEthProvider::default());
+        let provider = Arc::new(MockEthProvider::<TransactionSigned>::default());
         let payload_store = spawn_test_payload_service();
         let (to_engine, engine_rx) = unbounded_channel();
         let task_executor = Box::<TokioTaskExecutor>::default();

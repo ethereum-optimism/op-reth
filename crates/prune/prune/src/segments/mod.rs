@@ -162,7 +162,7 @@ mod tests {
         };
 
         // Default provider with no block corresponding to block 10
-        let provider: MockEthProvider<TransactionSigned> = MockEthProvider::default();
+        let provider = MockEthProvider::<TransactionSigned>::default();
 
         // No block body for block 10, expected None
         let range = input.get_next_tx_num_range(&provider).expect("Expected range");

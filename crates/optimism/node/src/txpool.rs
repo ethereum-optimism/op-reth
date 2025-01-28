@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn validate_optimism_transaction() {
-        let client: MockEthProvider<OpTransactionSigned> = MockEthProvider::default();
+        let client = MockEthProvider::<OpTransactionSigned>::default();
         let validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
             .no_shanghai()
             .no_cancun()

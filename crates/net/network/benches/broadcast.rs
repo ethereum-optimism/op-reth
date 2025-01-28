@@ -31,7 +31,8 @@ pub fn broadcast_ingress_bench(c: &mut Criterion) {
                 // runtime context and simply calling `block_on` here will cause the code to panic.
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async {
-                        let provider = MockEthProvider::default();
+                        use reth_primitives::TransactionSigned;
+                        let provider = MockEthProvider::<TransactionSigned>::default();
                         let mut net = Testnet::create_with(2, provider.clone()).await;
 
                         let mut peer0 = net.remove_peer(0);

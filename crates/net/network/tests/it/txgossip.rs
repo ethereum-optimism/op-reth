@@ -17,7 +17,7 @@ use reth_transaction_pool::{test_utils::TransactionGenerator, PoolTransaction, T
 async fn test_tx_gossip() {
     reth_tracing::init_test_tracing();
 
-    let provider = MockEthProvider::default();
+    let provider = MockEthProvider::<TransactionSigned>::default();
     let net = Testnet::create_with(2, provider.clone()).await;
 
     // install request handlers
@@ -54,7 +54,7 @@ async fn test_tx_gossip() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_4844_tx_gossip_penalization() {
     reth_tracing::init_test_tracing();
-    let provider = MockEthProvider::default();
+    let provider = MockEthProvider::<TransactionSigned>::default();
     let net = Testnet::create_with(2, provider.clone()).await;
 
     // install request handlers
@@ -105,7 +105,7 @@ async fn test_4844_tx_gossip_penalization() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_sending_invalid_transactions() {
     reth_tracing::init_test_tracing();
-    let provider = MockEthProvider::default();
+    let provider = MockEthProvider::<TransactionSigned>::default();
     let net = Testnet::create_with(2, provider.clone()).await;
     // install request handlers
     let net = net.with_eth_pool();

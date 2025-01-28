@@ -911,9 +911,9 @@ impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
     }
 
     fn pending_block_and_receipts(
-        &self
+        &self,
     ) -> ProviderResult<
-        Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>
+        Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>,
     > {
         Ok(None)
     }

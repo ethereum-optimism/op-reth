@@ -883,7 +883,7 @@ mod tests {
     use alloy_eips::eip2718::Decodable2718;
     use alloy_primitives::{hex, U256};
     use reth_chainspec::MAINNET;
-    use reth_primitives::{transaction::SignedTransactionIntoRecoveredExt, PooledTransaction};
+    use reth_primitives::{TransactionSigned, transaction::SignedTransactionIntoRecoveredExt, PooledTransaction};
     use reth_provider::test_utils::{ExtendedAccount, MockEthProvider};
 
     fn get_transaction() -> EthPooledTransaction {
@@ -909,7 +909,7 @@ mod tests {
         let res = ensure_intrinsic_gas(&transaction, &fork_tracker);
         assert!(res.is_ok());
 
-        let provider = MockEthProvider::default();
+        let provider = MockEthProvider::<TransactionSigned>::default();
         provider.add_account(
             transaction.sender(),
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
@@ -936,7 +936,7 @@ mod tests {
     async fn invalid_on_gas_limit_too_high() {
         let transaction = get_transaction();
 
-        let provider = MockEthProvider::default();
+        let provider = MockEthProvider::<TransactionSigned>::default();
         provider.add_account(
             transaction.sender(),
             ExtendedAccount::new(transaction.nonce(), U256::MAX),

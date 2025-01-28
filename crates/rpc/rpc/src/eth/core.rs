@@ -619,8 +619,9 @@ mod tests {
         let newest_block = 1337;
         let oldest_block = None;
 
+        let provider = MockEthProvider::<TransactionSigned>::default();
         let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, MockEthProvider::default());
+            prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
@@ -642,8 +643,9 @@ mod tests {
         let newest_block = 1337;
         let oldest_block = None;
 
+        let provider = MockEthProvider::<TransactionSigned>::default();
         let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, MockEthProvider::default());
+            prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
@@ -665,8 +667,9 @@ mod tests {
         let newest_block = 1337;
         let oldest_block = None;
 
+        let provider = MockEthProvider::<TransactionSigned>::default();
         let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, MockEthProvider::default());
+            prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
@@ -690,8 +693,9 @@ mod tests {
         let newest_block = 1337;
         let oldest_block = None;
 
+        let provider = MockEthProvider::<TransactionSigned>::default();
         let (eth_api, base_fees_per_gas, gas_used_ratios) =
-            prepare_eth_api(newest_block, oldest_block, block_count, MockEthProvider::default());
+            prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let fee_history =
             eth_api.fee_history(U64::from(1), newest_block.into(), None).await.unwrap();
@@ -724,8 +728,9 @@ mod tests {
         let newest_block = 1337;
         let oldest_block = None;
 
+        let provider = MockEthProvider::<TransactionSigned>::default();
         let (eth_api, base_fees_per_gas, gas_used_ratios) =
-            prepare_eth_api(newest_block, oldest_block, block_count, MockEthProvider::default());
+            prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let fee_history =
             eth_api.fee_history(U64::from(block_count), newest_block.into(), None).await.unwrap();
