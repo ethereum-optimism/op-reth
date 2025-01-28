@@ -910,7 +910,11 @@ impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
         Ok(None)
     }
 
-    fn pending_block_and_receipts(&self) -> ProviderResult<Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>> {
+    fn pending_block_and_receipts(
+        &self
+    ) -> ProviderResult<
+        Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>
+    > {
         Ok(None)
     }
 
@@ -984,7 +988,11 @@ impl BlockReaderIdExt for MockEthProvider {
 
 #[cfg(feature = "optimism")]
 impl BlockReaderIdExt for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
-    fn block_by_id(&self, id: BlockId) -> ProviderResult<Option<alloy_consensus::Block<reth_optimism_primitives::OpTransactionSigned>>> {
+    fn block_by_id(
+        &self,
+        id: BlockId,
+    ) -> ProviderResult<Option<alloy_consensus::Block<reth_optimism_primitives::OpTransactionSigned>>>
+    {
         match id {
             BlockId::Number(num) => self.block_by_number_or_tag(num),
             BlockId::Hash(hash) => self.block_by_hash(hash.block_hash),

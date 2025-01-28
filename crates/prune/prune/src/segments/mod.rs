@@ -146,11 +146,11 @@ impl PruneInput {
 mod tests {
     use super::*;
     use alloy_primitives::B256;
+    use reth_primitives::TransactionSigned;
     use reth_provider::{
         providers::BlockchainProvider,
         test_utils::{create_test_provider_factory, MockEthProvider},
     };
-    use reth_primitives::TransactionSigned;
     use reth_testing_utils::generators::{self, random_block_range, BlockRangeParams};
 
     #[test]
