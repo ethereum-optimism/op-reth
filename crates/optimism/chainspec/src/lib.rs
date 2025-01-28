@@ -190,8 +190,6 @@ pub struct OpChainSpec {
     /// [`ChainSpec`].
     #[deref]
     inner: ChainSpec,
-    /// Genesis block header.
-    pub genesis_header: Header,
 }
 
 impl OpChainSpec {
@@ -277,7 +275,8 @@ impl EthChainSpec for OpChainSpec {
     }
 
     fn genesis_header(&self) -> &Self::Header {
-        &self.genesis_header
+        // header is set in construction of `OpChainSpec` from `ChainSpec`
+        self.inner.genesis_header.get().expect("header is set")
     }
 
     fn genesis(&self) -> &Genesis {
@@ -404,7 +403,7 @@ impl From<Genesis> for OpChainSpec {
         // append the remaining unknown hardforks to ensure we don't filter any out
         ordered_hardforks.append(&mut block_hardforks);
 
-        let inner = ChainSpec {
+        Self::from(ChainSpec {
             chain: genesis.config.chain_id.into(),
             genesis,
             hardforks: ChainHardforks::new(ordered_hardforks),
@@ -413,25 +412,31 @@ impl From<Genesis> for OpChainSpec {
             paris_block_and_final_difficulty: Some((0, U256::ZERO)),
             base_fee_params: optimism_genesis_info.base_fee_params,
             ..Default::default()
-        };
-
-        Self::from(inner)
+        })
     }
 }
 
 impl From<ChainSpec> for OpChainSpec {
-    fn from(inner: ChainSpec) -> Self {
-        let mut genesis_header = inner.genesis_header().clone();
-
+    fn from(mut inner: ChainSpec) -> Self {
         if inner.hardforks.is_fork_active_at_timestamp(OpHardfork::Isthmus, inner.genesis.timestamp)
         {
             match inner.genesis.alloc.get(&ADDRESS_L2_TO_L1_MESSAGE_PASSER) {
                 Some(predeploy) => {
-                    genesis_header.withdrawals_root = predeploy.storage.as_ref().map(|storage| {
-                        storage_root_unhashed(
-                            storage.clone().into_iter().map(|(k, v)| (k, v.into())),
-                        )
-                    })
+                    // under the hood makes header, if not yet init
+                    _ = inner.genesis_header();
+                    let header = inner.genesis_header.get_mut().expect("header is set");
+
+                    // update withdrawals root in header
+                    header.withdrawals_root = predeploy.storage.as_ref().map(|s| {
+                        storage_root_unhashed(s.clone().into_iter().map(|(k, v)| (k, v.into())))
+                    });
+
+                    // fill once lock with a value, if not yet init
+                    _ = inner.genesis_hash.get_or_init(Default::default);
+                    let hash = inner.genesis_hash.get_mut().expect("hash is set");
+
+                    // update header hash
+                    *hash = header.hash_slow()
                 }
                 None => warn!(target: "reth::cli",
                     address=%ADDRESS_L2_TO_L1_MESSAGE_PASSER,
@@ -440,7 +445,7 @@ impl From<ChainSpec> for OpChainSpec {
             }
         }
 
-        Self { inner, genesis_header }
+        Self { inner }
     }
 }
 
