@@ -216,7 +216,7 @@ mod test {
         let hardforks = OpHardfork::base_sepolia();
         Arc::new(OpChainSpec {
             inner: ChainSpec {
-                chain: BASE_SEPOLIA.inner.chain,
+                chain: BASE_SEPOLIA.chain,
                 genesis: BASE_SEPOLIA.inner.genesis.clone(),
                 genesis_hash: BASE_SEPOLIA.inner.genesis_hash.clone(),
                 paris_block_and_final_difficulty: BASE_SEPOLIA
