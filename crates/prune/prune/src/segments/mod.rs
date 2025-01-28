@@ -150,6 +150,7 @@ mod tests {
         providers::BlockchainProvider,
         test_utils::{create_test_provider_factory, MockEthProvider},
     };
+    use reth_primitives::TransactionSigned;
     use reth_testing_utils::generators::{self, random_block_range, BlockRangeParams};
 
     #[test]
@@ -161,7 +162,7 @@ mod tests {
         };
 
         // Default provider with no block corresponding to block 10
-        let provider = MockEthProvider::default();
+        let provider: MockEthProvider<TransactionSigned> = MockEthProvider::default();
 
         // No block body for block 10, expected None
         let range = input.get_next_tx_num_range(&provider).expect("Expected range");

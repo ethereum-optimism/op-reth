@@ -900,13 +900,15 @@ impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
         }
     }
 
-    fn pending_block(&self) -> ProviderResult<Option<reth_primitives_traits::block::SealedBlock<Self::Block>>> {
+    fn pending_block(
+        &self,
+    ) -> ProviderResult<Option<reth_primitives_traits::block::SealedBlock<Self::Block>>> {
         Ok(None)
     }
 
     fn pending_block_with_senders(&self) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
-         Ok(None)
-     }
+        Ok(None)
+    }
 
     fn pending_block_and_receipts(&self) -> ProviderResult<Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>> {
         Ok(None)
@@ -952,7 +954,6 @@ impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
         Ok(vec![])
     }
 }
-
 
 impl BlockReaderIdExt for MockEthProvider {
     fn block_by_id(&self, id: BlockId) -> ProviderResult<Option<Block>> {
@@ -1022,7 +1023,6 @@ impl AccountReader for MockEthProvider<reth_optimism_primitives::OpTransactionSi
     }
 }
 
-
 impl StageCheckpointReader for MockEthProvider {
     fn get_stage_checkpoint(&self, _id: StageId) -> ProviderResult<Option<StageCheckpoint>> {
         Ok(None)
@@ -1051,7 +1051,6 @@ impl StageCheckpointReader for MockEthProvider<reth_optimism_primitives::OpTrans
         Ok(vec![])
     }
 }
-
 
 impl StateRootProvider for MockEthProvider {
     fn state_root(&self, _state: HashedPostState) -> ProviderResult<B256> {
@@ -1163,7 +1162,6 @@ impl StorageRootProvider for MockEthProvider<reth_optimism_primitives::OpTransac
     }
 }
 
-
 impl StateProofProvider for MockEthProvider {
     fn proof(
         &self,
@@ -1231,7 +1229,6 @@ impl HashedPostStateProvider for MockEthProvider<reth_optimism_primitives::OpTra
         HashedPostState::default()
     }
 }
-
 
 impl StateProvider for MockEthProvider {
     fn storage(
@@ -1385,7 +1382,6 @@ impl StateProviderFactory for MockEthProvider<reth_optimism_primitives::OpTransa
     }
 }
 
-
 impl WithdrawalsProvider for MockEthProvider {
     fn withdrawals_by_block(
         &self,
@@ -1407,7 +1403,6 @@ impl WithdrawalsProvider for MockEthProvider<reth_optimism_primitives::OpTransac
     }
 }
 
-
 impl OmmersProvider for MockEthProvider {
     fn ommers(&self, _id: BlockHashOrNumber) -> ProviderResult<Option<Vec<Header>>> {
         Ok(None)
@@ -1420,7 +1415,6 @@ impl OmmersProvider for MockEthProvider<reth_optimism_primitives::OpTransactionS
         Ok(None)
     }
 }
-
 
 impl BlockBodyIndicesProvider for MockEthProvider {
     fn block_body_indices(&self, _num: u64) -> ProviderResult<Option<StoredBlockBodyIndices>> {
@@ -1482,4 +1476,3 @@ impl StateReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
         Ok(None)
     }
 }
-

@@ -49,5 +49,6 @@ reth-stages = { workspace = true, features = ["test-utils"] }
 reth-primitives-traits = { workspace = true, features = ["arbitrary"] }
 reth-testing-utils.workspace = true
 reth-tracing.workspace = true
+reth-primitives.workspace = true
 
 assert_matches.workspace = true
