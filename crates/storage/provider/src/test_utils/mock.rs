@@ -164,6 +164,26 @@ impl StateCommitmentProvider for MockEthProvider {
     type StateCommitment = <MockNode as NodeTypes>::StateCommitment;
 }
 
+#[cfg(feature = "optimism")]
+impl StateCommitmentProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type StateCommitment = <MockNode as NodeTypes>::StateCommitment;
+}
+
+#[cfg(feature = "optimism")]
+impl DatabaseProviderFactory for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type DB = DatabaseMock;
+    type Provider = DatabaseProvider<TxMock, MockNode>;
+    type ProviderRW = DatabaseProvider<TxMock, MockNode>;
+
+    fn database_provider_ro(&self) -> ProviderResult<Self::Provider> {
+        Err(ConsistentViewError::Syncing { best_block: GotExpected::new(0, 0) }.into())
+    }
+
+    fn database_provider_rw(&self) -> ProviderResult<Self::ProviderRW> {
+        Err(ConsistentViewError::Syncing { best_block: GotExpected::new(0, 0) }.into())
+    }
+}
+
 impl DatabaseProviderFactory for MockEthProvider {
     type DB = DatabaseMock;
     type Provider = DatabaseProvider<TxMock, MockNode>;
@@ -175,6 +195,66 @@ impl DatabaseProviderFactory for MockEthProvider {
 
     fn database_provider_rw(&self) -> ProviderResult<Self::ProviderRW> {
         Err(ConsistentViewError::Syncing { best_block: GotExpected::new(0, 0) }.into())
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl HeaderProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type Header = Header;
+
+    fn header(&self, block_hash: &BlockHash) -> ProviderResult<Option<Header>> {
+        let lock = self.headers.lock();
+        Ok(lock.get(block_hash).cloned())
+    }
+
+    fn header_by_number(&self, num: u64) -> ProviderResult<Option<Header>> {
+        let lock = self.headers.lock();
+        Ok(lock.values().find(|h| h.number == num).cloned())
+    }
+
+    fn header_td(&self, hash: &BlockHash) -> ProviderResult<Option<U256>> {
+        let lock = self.headers.lock();
+        Ok(lock.get(hash).map(|target| {
+            lock.values()
+                .filter(|h| h.number < target.number)
+                .fold(target.difficulty, |td, h| td + h.difficulty)
+        }))
+    }
+
+    fn header_td_by_number(&self, number: BlockNumber) -> ProviderResult<Option<U256>> {
+        let lock = self.headers.lock();
+        let sum = lock
+            .values()
+            .filter(|h| h.number <= number)
+            .fold(U256::ZERO, |td, h| td + h.difficulty);
+        Ok(Some(sum))
+    }
+
+    fn headers_range(&self, range: impl RangeBounds<BlockNumber>) -> ProviderResult<Vec<Header>> {
+        let lock = self.headers.lock();
+
+        let mut headers: Vec<_> =
+            lock.values().filter(|header| range.contains(&header.number)).cloned().collect();
+        headers.sort_by_key(|header| header.number);
+
+        Ok(headers)
+    }
+
+    fn sealed_header(&self, number: BlockNumber) -> ProviderResult<Option<SealedHeader>> {
+        Ok(self.header_by_number(number)?.map(SealedHeader::seal_slow))
+    }
+
+    fn sealed_headers_while(
+        &self,
+        range: impl RangeBounds<BlockNumber>,
+        mut predicate: impl FnMut(&SealedHeader) -> bool,
+    ) -> ProviderResult<Vec<SealedHeader>> {
+        Ok(self
+            .headers_range(range)?
+            .into_iter()
+            .map(SealedHeader::seal_slow)
+            .take_while(|h| predicate(h))
+            .collect())
     }
 }
 
@@ -237,11 +317,160 @@ impl HeaderProvider for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl ChainSpecProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type ChainSpec = ChainSpec;
+
+    fn chain_spec(&self) -> Arc<ChainSpec> {
+        self.chain_spec.clone()
+    }
+}
+
 impl ChainSpecProvider for MockEthProvider {
     type ChainSpec = ChainSpec;
 
     fn chain_spec(&self) -> Arc<ChainSpec> {
         self.chain_spec.clone()
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl TransactionsProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type Transaction = reth_optimism_primitives::OpTransactionSigned;
+
+    fn transaction_id(&self, tx_hash: TxHash) -> ProviderResult<Option<TxNumber>> {
+        let lock = self.blocks.lock();
+        let tx_number = lock
+            .values()
+            .flat_map(|block| &block.body.transactions)
+            .position(|tx| *tx.tx_hash() == tx_hash)
+            .map(|pos| pos as TxNumber);
+
+        Ok(tx_number)
+    }
+
+    fn transaction_by_id(&self, id: TxNumber) -> ProviderResult<Option<Self::Transaction>> {
+        let lock = self.blocks.lock();
+        let transaction =
+            lock.values().flat_map(|block| &block.body.transactions).nth(id as usize).cloned();
+
+        Ok(transaction)
+    }
+
+    fn transaction_by_id_unhashed(
+        &self,
+        id: TxNumber,
+    ) -> ProviderResult<Option<Self::Transaction>> {
+        let lock = self.blocks.lock();
+        let transaction =
+            lock.values().flat_map(|block| &block.body.transactions).nth(id as usize).cloned();
+
+        Ok(transaction)
+    }
+
+    fn transaction_by_hash(&self, hash: TxHash) -> ProviderResult<Option<Self::Transaction>> {
+        Ok(self.blocks.lock().iter().find_map(|(_, block)| {
+            block.body.transactions.iter().find(|tx| *tx.tx_hash() == hash).cloned()
+        }))
+    }
+
+    fn transaction_by_hash_with_meta(
+        &self,
+        hash: TxHash,
+    ) -> ProviderResult<Option<(Self::Transaction, TransactionMeta)>> {
+        let lock = self.blocks.lock();
+        for (block_hash, block) in lock.iter() {
+            for (index, tx) in block.body.transactions.iter().enumerate() {
+                if *tx.tx_hash() == hash {
+                    let meta = TransactionMeta {
+                        tx_hash: hash,
+                        index: index as u64,
+                        block_hash: *block_hash,
+                        block_number: block.header.number,
+                        base_fee: block.header.base_fee_per_gas,
+                        excess_blob_gas: block.header.excess_blob_gas,
+                        timestamp: block.header.timestamp,
+                    };
+                    return Ok(Some((tx.clone(), meta)))
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    fn transaction_block(&self, id: TxNumber) -> ProviderResult<Option<BlockNumber>> {
+        let lock = self.blocks.lock();
+        let mut current_tx_number: TxNumber = 0;
+        for block in lock.values() {
+            if current_tx_number + (block.body.transactions.len() as TxNumber) > id {
+                return Ok(Some(block.header.number))
+            }
+            current_tx_number += block.body.transactions.len() as TxNumber;
+        }
+        Ok(None)
+    }
+
+    fn transactions_by_block(
+        &self,
+        id: BlockHashOrNumber,
+    ) -> ProviderResult<Option<Vec<Self::Transaction>>> {
+        Ok(self.block(id)?.map(|b| b.body.transactions))
+    }
+
+    fn transactions_by_block_range(
+        &self,
+        range: impl RangeBounds<alloy_primitives::BlockNumber>,
+    ) -> ProviderResult<Vec<Vec<Self::Transaction>>> {
+        // init btreemap so we can return in order
+        let mut map = BTreeMap::new();
+        for (_, block) in self.blocks.lock().iter() {
+            if range.contains(&block.number) {
+                map.insert(block.number, block.body.transactions.clone());
+            }
+        }
+
+        Ok(map.into_values().collect())
+    }
+
+    fn transactions_by_tx_range(
+        &self,
+        range: impl RangeBounds<TxNumber>,
+    ) -> ProviderResult<Vec<Self::Transaction>> {
+        let lock = self.blocks.lock();
+        let transactions = lock
+            .values()
+            .flat_map(|block| &block.body.transactions)
+            .enumerate()
+            .filter(|&(tx_number, _)| range.contains(&(tx_number as TxNumber)))
+            .map(|(_, tx)| tx.clone())
+            .collect();
+
+        Ok(transactions)
+    }
+
+    fn senders_by_tx_range(
+        &self,
+        range: impl RangeBounds<TxNumber>,
+    ) -> ProviderResult<Vec<Address>> {
+        let lock = self.blocks.lock();
+        let transactions = lock
+            .values()
+            .flat_map(|block| &block.body.transactions)
+            .enumerate()
+            .filter_map(|(tx_number, tx)| {
+                if range.contains(&(tx_number as TxNumber)) {
+                    tx.recover_signer().ok()
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(transactions)
+    }
+
+    fn transaction_sender(&self, id: TxNumber) -> ProviderResult<Option<Address>> {
+        self.transaction_by_id(id).map(|tx_option| tx_option.map(|tx| tx.recover_signer().unwrap()))
     }
 }
 
@@ -384,6 +613,30 @@ impl TransactionsProvider for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl ReceiptProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type Receipt = Receipt;
+
+    fn receipt(&self, _id: TxNumber) -> ProviderResult<Option<Receipt>> {
+        Ok(None)
+    }
+
+    fn receipt_by_hash(&self, _hash: TxHash) -> ProviderResult<Option<Receipt>> {
+        Ok(None)
+    }
+
+    fn receipts_by_block(&self, _block: BlockHashOrNumber) -> ProviderResult<Option<Vec<Receipt>>> {
+        Ok(None)
+    }
+
+    fn receipts_by_tx_range(
+        &self,
+        _range: impl RangeBounds<TxNumber>,
+    ) -> ProviderResult<Vec<Receipt>> {
+        Ok(vec![])
+    }
+}
+
 impl ReceiptProvider for MockEthProvider {
     type Receipt = Receipt;
 
@@ -409,7 +662,35 @@ impl ReceiptProvider for MockEthProvider {
 
 impl ReceiptProviderIdExt for MockEthProvider {}
 
+#[cfg(feature = "optimism")]
+impl ReceiptProviderIdExt for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {}
+
 impl BlockHashReader for MockEthProvider {
+    fn block_hash(&self, number: u64) -> ProviderResult<Option<B256>> {
+        let lock = self.blocks.lock();
+
+        let hash = lock.iter().find_map(|(hash, b)| (b.number == number).then_some(*hash));
+        Ok(hash)
+    }
+
+    fn canonical_hashes_range(
+        &self,
+        start: BlockNumber,
+        end: BlockNumber,
+    ) -> ProviderResult<Vec<B256>> {
+        let range = start..end;
+        let lock = self.blocks.lock();
+
+        let mut hashes: Vec<_> =
+            lock.iter().filter(|(_, block)| range.contains(&block.number)).collect();
+        hashes.sort_by_key(|(_, block)| block.number);
+
+        Ok(hashes.into_iter().map(|(hash, _)| *hash).collect())
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl BlockHashReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn block_hash(&self, number: u64) -> ProviderResult<Option<B256>> {
         let lock = self.blocks.lock();
 
@@ -464,7 +745,54 @@ impl BlockNumReader for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl BlockNumReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn chain_info(&self) -> ProviderResult<ChainInfo> {
+        let best_block_number = self.best_block_number()?;
+        let lock = self.headers.lock();
+
+        Ok(lock
+            .iter()
+            .find(|(_, header)| header.number == best_block_number)
+            .map(|(hash, header)| ChainInfo { best_hash: *hash, best_number: header.number })
+            .unwrap_or_default())
+    }
+
+    fn best_block_number(&self) -> ProviderResult<BlockNumber> {
+        let lock = self.headers.lock();
+        lock.iter()
+            .max_by_key(|h| h.1.number)
+            .map(|(_, header)| header.number)
+            .ok_or(ProviderError::BestBlockNotFound)
+    }
+
+    fn last_block_number(&self) -> ProviderResult<BlockNumber> {
+        self.best_block_number()
+    }
+
+    fn block_number(&self, hash: B256) -> ProviderResult<Option<alloy_primitives::BlockNumber>> {
+        let lock = self.blocks.lock();
+        let num = lock.iter().find_map(|(h, b)| (*h == hash).then_some(b.number));
+        Ok(num)
+    }
+}
+
 impl BlockIdReader for MockEthProvider {
+    fn pending_block_num_hash(&self) -> ProviderResult<Option<alloy_eips::BlockNumHash>> {
+        Ok(None)
+    }
+
+    fn safe_block_num_hash(&self) -> ProviderResult<Option<alloy_eips::BlockNumHash>> {
+        Ok(None)
+    }
+
+    fn finalized_block_num_hash(&self) -> ProviderResult<Option<alloy_eips::BlockNumHash>> {
+        Ok(None)
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl BlockIdReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn pending_block_num_hash(&self) -> ProviderResult<Option<alloy_eips::BlockNumHash>> {
         Ok(None)
     }
@@ -552,8 +880,119 @@ impl BlockReader for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    type Block = alloy_consensus::Block<reth_optimism_primitives::OpTransactionSigned>;
+
+    fn find_block_by_hash(
+        &self,
+        hash: B256,
+        _source: BlockSource,
+    ) -> ProviderResult<Option<Self::Block>> {
+        self.block(hash.into())
+    }
+
+    fn block(&self, id: BlockHashOrNumber) -> ProviderResult<Option<Self::Block>> {
+        let lock = self.blocks.lock();
+        match id {
+            BlockHashOrNumber::Hash(hash) => Ok(lock.get(&hash).cloned()),
+            BlockHashOrNumber::Number(num) => Ok(lock.values().find(|b| b.number == num).cloned()),
+        }
+    }
+
+    fn pending_block(
+        &self,
+    ) -> ProviderResult<Option<reth_primitives_traits::block::SealedBlock<Self::Block>>> {
+        Ok(None)
+    }
+
+    fn pending_block_with_senders(&self) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
+        Ok(None)
+    }
+
+    fn pending_block_and_receipts(
+        &self,
+    ) -> ProviderResult<
+        Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>,
+    > {
+        Ok(None)
+    }
+
+    fn block_with_senders(
+        &self,
+        _id: BlockHashOrNumber,
+        _transaction_kind: TransactionVariant,
+    ) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
+        Ok(None)
+    }
+
+    fn sealed_block_with_senders(
+        &self,
+        _id: BlockHashOrNumber,
+        _transaction_kind: TransactionVariant,
+    ) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
+        Ok(None)
+    }
+
+    fn block_range(&self, range: RangeInclusive<BlockNumber>) -> ProviderResult<Vec<Self::Block>> {
+        let lock = self.blocks.lock();
+
+        let mut blocks: Vec<_> =
+            lock.values().filter(|block| range.contains(&block.number)).cloned().collect();
+        blocks.sort_by_key(|block| block.number);
+
+        Ok(blocks)
+    }
+
+    fn block_with_senders_range(
+        &self,
+        _range: RangeInclusive<BlockNumber>,
+    ) -> ProviderResult<Vec<RecoveredBlock<Self::Block>>> {
+        Ok(vec![])
+    }
+
+    fn sealed_block_with_senders_range(
+        &self,
+        _range: RangeInclusive<BlockNumber>,
+    ) -> ProviderResult<Vec<RecoveredBlock<Self::Block>>> {
+        Ok(vec![])
+    }
+}
+
 impl BlockReaderIdExt for MockEthProvider {
     fn block_by_id(&self, id: BlockId) -> ProviderResult<Option<Block>> {
+        match id {
+            BlockId::Number(num) => self.block_by_number_or_tag(num),
+            BlockId::Hash(hash) => self.block_by_hash(hash.block_hash),
+        }
+    }
+
+    fn sealed_header_by_id(&self, id: BlockId) -> ProviderResult<Option<SealedHeader>> {
+        self.header_by_id(id)?.map_or_else(|| Ok(None), |h| Ok(Some(SealedHeader::seal_slow(h))))
+    }
+
+    fn header_by_id(&self, id: BlockId) -> ProviderResult<Option<Header>> {
+        match self.block_by_id(id)? {
+            None => Ok(None),
+            Some(block) => Ok(Some(block.header)),
+        }
+    }
+
+    fn ommers_by_id(&self, id: BlockId) -> ProviderResult<Option<Vec<Header>>> {
+        match id {
+            BlockId::Number(num) => self.ommers_by_number_or_tag(num),
+            BlockId::Hash(hash) => self.ommers(BlockHashOrNumber::Hash(hash.block_hash)),
+        }
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl BlockReaderIdExt for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn block_by_id(
+        &self,
+        id: BlockId,
+    ) -> ProviderResult<Option<alloy_consensus::Block<reth_optimism_primitives::OpTransactionSigned>>>
+    {
         match id {
             BlockId::Number(num) => self.block_by_number_or_tag(num),
             BlockId::Hash(hash) => self.block_by_hash(hash.block_hash),
@@ -585,7 +1024,29 @@ impl AccountReader for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl AccountReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn basic_account(&self, address: &Address) -> ProviderResult<Option<Account>> {
+        Ok(self.accounts.lock().get(address).cloned().map(|a| a.account))
+    }
+}
+
 impl StageCheckpointReader for MockEthProvider {
+    fn get_stage_checkpoint(&self, _id: StageId) -> ProviderResult<Option<StageCheckpoint>> {
+        Ok(None)
+    }
+
+    fn get_stage_checkpoint_progress(&self, _id: StageId) -> ProviderResult<Option<Vec<u8>>> {
+        Ok(None)
+    }
+
+    fn get_all_checkpoints(&self) -> ProviderResult<Vec<(String, StageCheckpoint)>> {
+        Ok(vec![])
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl StageCheckpointReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn get_stage_checkpoint(&self, _id: StageId) -> ProviderResult<Option<StageCheckpoint>> {
         Ok(None)
     }
@@ -625,7 +1086,63 @@ impl StateRootProvider for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl StateRootProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn state_root(&self, _state: HashedPostState) -> ProviderResult<B256> {
+        Ok(self.state_roots.lock().pop().unwrap_or_default())
+    }
+
+    fn state_root_from_nodes(&self, _input: TrieInput) -> ProviderResult<B256> {
+        Ok(self.state_roots.lock().pop().unwrap_or_default())
+    }
+
+    fn state_root_with_updates(
+        &self,
+        _state: HashedPostState,
+    ) -> ProviderResult<(B256, TrieUpdates)> {
+        let state_root = self.state_roots.lock().pop().unwrap_or_default();
+        Ok((state_root, Default::default()))
+    }
+
+    fn state_root_from_nodes_with_updates(
+        &self,
+        _input: TrieInput,
+    ) -> ProviderResult<(B256, TrieUpdates)> {
+        let state_root = self.state_roots.lock().pop().unwrap_or_default();
+        Ok((state_root, Default::default()))
+    }
+}
+
 impl StorageRootProvider for MockEthProvider {
+    fn storage_root(
+        &self,
+        _address: Address,
+        _hashed_storage: HashedStorage,
+    ) -> ProviderResult<B256> {
+        Ok(EMPTY_ROOT_HASH)
+    }
+
+    fn storage_proof(
+        &self,
+        _address: Address,
+        slot: B256,
+        _hashed_storage: HashedStorage,
+    ) -> ProviderResult<reth_trie::StorageProof> {
+        Ok(StorageProof::new(slot))
+    }
+
+    fn storage_multiproof(
+        &self,
+        _address: Address,
+        _slots: &[B256],
+        _hashed_storage: HashedStorage,
+    ) -> ProviderResult<StorageMultiProof> {
+        Ok(StorageMultiProof::empty())
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl StorageRootProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn storage_root(
         &self,
         _address: Address,
@@ -680,13 +1197,72 @@ impl StateProofProvider for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl StateProofProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn proof(
+        &self,
+        _input: TrieInput,
+        address: Address,
+        _slots: &[B256],
+    ) -> ProviderResult<AccountProof> {
+        Ok(AccountProof::new(address))
+    }
+
+    fn multiproof(
+        &self,
+        _input: TrieInput,
+        _targets: MultiProofTargets,
+    ) -> ProviderResult<MultiProof> {
+        Ok(MultiProof::default())
+    }
+
+    fn witness(
+        &self,
+        _input: TrieInput,
+        _target: HashedPostState,
+    ) -> ProviderResult<B256HashMap<Bytes>> {
+        Ok(HashMap::default())
+    }
+}
+
 impl HashedPostStateProvider for MockEthProvider {
     fn hashed_post_state(&self, _state: &revm::db::BundleState) -> HashedPostState {
         HashedPostState::default()
     }
 }
 
+#[cfg(feature = "optimism")]
+impl HashedPostStateProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn hashed_post_state(&self, _state: &revm::db::BundleState) -> HashedPostState {
+        HashedPostState::default()
+    }
+}
+
 impl StateProvider for MockEthProvider {
+    fn storage(
+        &self,
+        account: Address,
+        storage_key: StorageKey,
+    ) -> ProviderResult<Option<StorageValue>> {
+        let lock = self.accounts.lock();
+        Ok(lock.get(&account).and_then(|account| account.storage.get(&storage_key)).copied())
+    }
+
+    fn bytecode_by_hash(&self, code_hash: &B256) -> ProviderResult<Option<Bytecode>> {
+        let lock = self.accounts.lock();
+        Ok(lock.values().find_map(|account| {
+            match (account.account.bytecode_hash.as_ref(), account.bytecode.as_ref()) {
+                (Some(bytecode_hash), Some(bytecode)) if bytecode_hash == code_hash => {
+                    Some(bytecode.clone())
+                }
+                _ => None,
+            }
+        }))
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl StateProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn storage(
         &self,
         account: Address,
@@ -761,7 +1337,71 @@ impl StateProviderFactory for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl StateProviderFactory for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn latest(&self) -> ProviderResult<StateProviderBox> {
+        Ok(Box::new(self.clone()))
+    }
+
+    fn state_by_block_number_or_tag(
+        &self,
+        number_or_tag: BlockNumberOrTag,
+    ) -> ProviderResult<StateProviderBox> {
+        match number_or_tag {
+            BlockNumberOrTag::Latest => self.latest(),
+            BlockNumberOrTag::Finalized => {
+                // we can only get the finalized state by hash, not by num
+                let hash =
+                    self.finalized_block_hash()?.ok_or(ProviderError::FinalizedBlockNotFound)?;
+
+                // only look at historical state
+                self.history_by_block_hash(hash)
+            }
+            BlockNumberOrTag::Safe => {
+                // we can only get the safe state by hash, not by num
+                let hash = self.safe_block_hash()?.ok_or(ProviderError::SafeBlockNotFound)?;
+
+                self.history_by_block_hash(hash)
+            }
+            BlockNumberOrTag::Earliest => self.history_by_block_number(0),
+            BlockNumberOrTag::Pending => self.pending(),
+            BlockNumberOrTag::Number(num) => self.history_by_block_number(num),
+        }
+    }
+
+    fn history_by_block_number(&self, _block: BlockNumber) -> ProviderResult<StateProviderBox> {
+        Ok(Box::new(self.clone()))
+    }
+
+    fn history_by_block_hash(&self, _block: BlockHash) -> ProviderResult<StateProviderBox> {
+        Ok(Box::new(self.clone()))
+    }
+
+    fn state_by_block_hash(&self, _block: BlockHash) -> ProviderResult<StateProviderBox> {
+        Ok(Box::new(self.clone()))
+    }
+
+    fn pending(&self) -> ProviderResult<StateProviderBox> {
+        Ok(Box::new(self.clone()))
+    }
+
+    fn pending_state_by_hash(&self, _block_hash: B256) -> ProviderResult<Option<StateProviderBox>> {
+        Ok(Some(Box::new(self.clone())))
+    }
+}
+
 impl WithdrawalsProvider for MockEthProvider {
+    fn withdrawals_by_block(
+        &self,
+        _id: BlockHashOrNumber,
+        _timestamp: u64,
+    ) -> ProviderResult<Option<Withdrawals>> {
+        Ok(None)
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl WithdrawalsProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn withdrawals_by_block(
         &self,
         _id: BlockHashOrNumber,
@@ -777,7 +1417,27 @@ impl OmmersProvider for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl OmmersProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn ommers(&self, _id: BlockHashOrNumber) -> ProviderResult<Option<Vec<Header>>> {
+        Ok(None)
+    }
+}
+
 impl BlockBodyIndicesProvider for MockEthProvider {
+    fn block_body_indices(&self, _num: u64) -> ProviderResult<Option<StoredBlockBodyIndices>> {
+        Ok(None)
+    }
+    fn block_body_indices_range(
+        &self,
+        _range: RangeInclusive<BlockNumber>,
+    ) -> ProviderResult<Vec<StoredBlockBodyIndices>> {
+        Ok(vec![])
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl BlockBodyIndicesProvider for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     fn block_body_indices(&self, _num: u64) -> ProviderResult<Option<StoredBlockBodyIndices>> {
         Ok(None)
     }
@@ -798,7 +1458,26 @@ impl ChangeSetReader for MockEthProvider {
     }
 }
 
+#[cfg(feature = "optimism")]
+impl ChangeSetReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
+    fn account_block_changeset(
+        &self,
+        _block_number: BlockNumber,
+    ) -> ProviderResult<Vec<AccountBeforeTx>> {
+        Ok(Vec::default())
+    }
+}
+
 impl StateReader for MockEthProvider {
+    type Receipt = Receipt;
+
+    fn get_state(&self, _block: BlockNumber) -> ProviderResult<Option<ExecutionOutcome>> {
+        Ok(None)
+    }
+}
+
+#[cfg(feature = "optimism")]
+impl StateReader for MockEthProvider<reth_optimism_primitives::OpTransactionSigned> {
     type Receipt = Receipt;
 
     fn get_state(&self, _block: BlockNumber) -> ProviderResult<Option<ExecutionOutcome>> {

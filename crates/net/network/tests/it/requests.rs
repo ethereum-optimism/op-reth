@@ -40,7 +40,7 @@ pub fn rng_transaction(rng: &mut impl rand::RngCore) -> TransactionSigned {
 async fn test_get_body() {
     reth_tracing::init_test_tracing();
     let mut rng = rand::thread_rng();
-    let mock_provider = Arc::new(MockEthProvider::default());
+    let mock_provider = Arc::new(MockEthProvider::<TransactionSigned>::default());
 
     let mut net = Testnet::create_with(2, mock_provider.clone()).await;
 
@@ -82,7 +82,7 @@ async fn test_get_body() {
 async fn test_get_header() {
     reth_tracing::init_test_tracing();
     let mut rng = rand::thread_rng();
-    let mock_provider = Arc::new(MockEthProvider::default());
+    let mock_provider = Arc::new(MockEthProvider::<TransactionSigned>::default());
 
     let mut net = Testnet::create_with(2, mock_provider.clone()).await;
 

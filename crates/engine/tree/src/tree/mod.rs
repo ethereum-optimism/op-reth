@@ -2821,7 +2821,7 @@ mod tests {
     use reth_ethereum_consensus::EthBeaconConsensus;
     use reth_ethereum_engine_primitives::{EthEngineTypes, EthereumEngineValidator};
     use reth_evm::test_utils::MockExecutorProvider;
-    use reth_primitives::{Block, EthPrimitives};
+    use reth_primitives::{Block, EthPrimitives, TransactionSigned};
     use reth_primitives_traits::Block as _;
     use reth_provider::test_utils::MockEthProvider;
     use reth_rpc_types_compat::engine::{block_to_payload_v1, payload::block_to_payload_v3};
@@ -2924,7 +2924,7 @@ mod tests {
 
             let consensus = Arc::new(EthBeaconConsensus::new(chain_spec.clone()));
 
-            let provider = MockEthProvider::default();
+            let provider = MockEthProvider::<TransactionSigned>::default();
             let executor_provider = MockExecutorProvider::default();
 
             let payload_validator = EthereumEngineValidator::new(chain_spec.clone());
