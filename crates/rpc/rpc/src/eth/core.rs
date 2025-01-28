@@ -620,8 +620,7 @@ mod tests {
         let oldest_block = None;
 
         let provider = MockEthProvider::<TransactionSigned>::default();
-        let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, provider);
+        let (eth_api, _, _) = prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
@@ -644,8 +643,7 @@ mod tests {
         let oldest_block = None;
 
         let provider = MockEthProvider::<TransactionSigned>::default();
-        let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, provider);
+        let (eth_api, _, _) = prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
@@ -668,8 +666,7 @@ mod tests {
         let oldest_block = None;
 
         let provider = MockEthProvider::<TransactionSigned>::default();
-        let (eth_api, _, _) =
-            prepare_eth_api(newest_block, oldest_block, block_count, provider);
+        let (eth_api, _, _) = prepare_eth_api(newest_block, oldest_block, block_count, provider);
 
         let response = <EthApi<_, _, _, _> as EthApiServer<_, _, _, _>>::fee_history(
             &eth_api,
