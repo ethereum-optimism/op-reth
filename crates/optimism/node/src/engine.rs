@@ -217,13 +217,13 @@ mod test {
         Arc::new(OpChainSpec {
             inner: ChainSpec {
                 chain: BASE_SEPOLIA.chain,
-                genesis: BASE_SEPOLIA.inner.genesis.clone(),
-                genesis_hash: BASE_SEPOLIA.inner.genesis_hash.clone(),
+                genesis: BASE_SEPOLIA.genesis.clone(),
+                genesis_hash: BASE_SEPOLIA.genesis_hash.clone(),
                 paris_block_and_final_difficulty: BASE_SEPOLIA
                     .inner
                     .paris_block_and_final_difficulty,
                 hardforks,
-                base_fee_params: BASE_SEPOLIA.inner.base_fee_params.clone(),
+                base_fee_params: BASE_SEPOLIA.base_fee_params.clone(),
                 prune_delete_limit: 10000,
                 ..Default::default()
             },
