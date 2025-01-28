@@ -241,6 +241,11 @@ impl OpChainSpec {
             ))
         }
     }
+
+    /// Destructs into inner [`ChainSpec`].
+    pub fn clone_inner(&self) -> ChainSpec {
+        self.inner.clone()
+    }
 }
 
 impl EthChainSpec for OpChainSpec {
