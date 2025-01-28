@@ -258,7 +258,6 @@ impl HeaderProvider for MockEthProvider<reth_optimism_primitives::OpTransactionS
     }
 }
 
-
 impl HeaderProvider for MockEthProvider {
     type Header = Header;
 
@@ -807,7 +806,6 @@ impl BlockIdReader for MockEthProvider<reth_optimism_primitives::OpTransactionSi
     }
 }
 
-
 impl BlockReader for MockEthProvider {
     type Block = Block;
 
@@ -906,11 +904,9 @@ impl BlockReader for MockEthProvider<reth_optimism_primitives::OpTransactionSign
         Ok(None)
     }
 
-    fn pending_block_with_senders(
-        &self,
-    ) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
-        Ok(None)
-    }
+    fn pending_block_with_senders(&self) -> ProviderResult<Option<RecoveredBlock<Self::Block>>> {
+         Ok(None)
+     }
 
     fn pending_block_and_receipts(&self) -> ProviderResult<Option<(reth_primitives_traits::block::SealedBlock<Self::Block>, Vec<Receipt>)>> {
         Ok(None)
