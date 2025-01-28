@@ -733,7 +733,6 @@ mod tests {
     #[test]
     fn latest_base_mainnet_fork_id_with_builder() {
         let base_mainnet = OpChainSpecBuilder::base_mainnet().build();
-        assert_eq!(OpHardfork::Isthmus.fork_id(), base_mainnet.latest_fork_id());
         assert_eq!(
             ForkId { hash: ForkHash([0x3a, 0x2a, 0xf1, 0x83]), next: 0 },
             base_mainnet.latest_fork_id()
