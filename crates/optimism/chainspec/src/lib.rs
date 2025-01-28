@@ -423,23 +423,22 @@ impl From<Genesis> for OpChainSpec {
 
 impl From<ChainSpec> for OpChainSpec {
     fn from(mut inner: ChainSpec) -> Self {
+        // under the hood makes header, if not yet init
+        _ = inner.genesis_header();
+        // fill once lock with a value, if not yet init
+        _ = inner.genesis_hash.get_or_init(Default::default);
+
         if inner.hardforks.is_fork_active_at_timestamp(OpHardfork::Isthmus, inner.genesis.timestamp)
         {
             match inner.genesis.alloc.get(&ADDRESS_L2_TO_L1_MESSAGE_PASSER) {
                 Some(predeploy) => {
-                    // under the hood makes header, if not yet init
-                    _ = inner.genesis_header();
                     let header = inner.genesis_header.get_mut().expect("header is set");
-
                     // update withdrawals root in header
                     header.withdrawals_root = predeploy.storage.as_ref().map(|s| {
                         storage_root_unhashed(s.clone().into_iter().map(|(k, v)| (k, v.into())))
                     });
 
-                    // fill once lock with a value, if not yet init
-                    _ = inner.genesis_hash.get_or_init(Default::default);
                     let hash = inner.genesis_hash.get_mut().expect("hash is set");
-
                     // update header hash
                     *hash = header.hash_slow()
                 }
