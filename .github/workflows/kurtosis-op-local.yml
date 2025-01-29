@@ -107,6 +107,10 @@ jobs:
       - name: Assert that clients advance
         run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100
 
+      - name: Dump kurtosis logs on failure
+        if: ${{ failure() }}
+        run: ./.github/scripts/dump-kurtosis-logs.sh op-devnet
+
   notify-on-error:
     needs: 
       - test
