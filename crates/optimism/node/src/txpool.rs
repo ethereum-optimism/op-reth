@@ -233,8 +233,15 @@ impl EthPoolTransaction for OpPooledTransaction {
 /// An interop transaction validation error.
 #[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum InteropValidationError {
-    /// A temporary error occurred during transaction validation.
-    Temporary,
+    /// Block fetch failed.
+    #[display("block fetch failed")]
+    BlockFetchFailed,
+    /// Failed to load state.
+    #[display("failed to load state")]
+    StateLoadFailed,
+    /// Transaction execution failed.
+    #[display("transaction execution failed")]
+    TxExecutionFailed,
 }
 
 impl core::error::Error for InteropValidationError {}
@@ -350,7 +357,7 @@ where
             return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidTransactionError::TxTypeNotSupported.into(),
-            )
+            );
         }
 
         let outcome = self.inner.validate_one(origin, transaction);
@@ -393,7 +400,7 @@ where
                             GotExpected { got: balance, expected: cost }.into(),
                         )
                         .into(),
-                    )
+                    );
                 }
             }
 
@@ -412,8 +419,8 @@ where
                     );
                     return TransactionValidationOutcome::Error(
                         *valid_tx.hash(),
-                        InteropValidationError::Temporary.into(),
-                    )
+                        InteropValidationError::BlockFetchFailed.into(),
+                    );
                 };
 
                 // Construct the state using the current block.
@@ -425,8 +432,8 @@ where
                     );
                     return TransactionValidationOutcome::Error(
                         *valid_tx.hash(),
-                        InteropValidationError::Temporary.into(),
-                    )
+                        InteropValidationError::StateLoadFailed.into(),
+                    );
                 };
                 let mut db = CacheDB::new(StateProviderDatabase::new(&state));
 
@@ -451,8 +458,8 @@ where
                         );
                         return TransactionValidationOutcome::Error(
                             *valid_tx.hash(),
-                            InteropValidationError::Temporary.into(),
-                        )
+                            InteropValidationError::TxExecutionFailed.into(),
+                        );
                     }
                 };
                 trace!(target: "reth::txpool",
@@ -469,7 +476,7 @@ where
                 state_nonce,
                 transaction: valid_tx,
                 propagate,
-            }
+            };
         }
 
         outcome
@@ -534,10 +541,13 @@ pub struct OpL1BlockInfo {
 #[cfg(test)]
 mod tests {
     use crate::txpool::{OpPooledTransaction, OpTransactionValidator};
+    use crate::OpEvmConfig;
+    use alloy_consensus::{Block, TxEip1559};
     use alloy_eips::eip2718::Encodable2718;
-    use alloy_primitives::{PrimitiveSignature as Signature, TxKind, U256};
+    use alloy_primitives::{Address, PrimitiveSignature as Signature, TxKind, B256, U256};
     use op_alloy_consensus::{OpTypedTransaction, TxDeposit};
     use reth_chainspec::MAINNET;
+    use reth_optimism_chainspec::OpChainSpecBuilder;
     use reth_optimism_primitives::OpTransactionSigned;
     use reth_primitives::Recovered;
     use reth_provider::test_utils::MockEthProvider;
@@ -545,6 +555,7 @@ mod tests {
         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder, TransactionOrigin,
         TransactionValidationOutcome,
     };
+    use std::sync::Arc;
 
     #[test]
     fn validate_optimism_transaction() {
@@ -579,5 +590,82 @@ mod tests {
             _ => panic!("Expected invalid transaction"),
         };
         assert_eq!(err.to_string(), "transaction type not supported");
+    }
+
+    #[test]
+    fn block_fetch_failed_interop() {
+        let client = MockEthProvider::<OpTransactionSigned>::default();
+        let op_spec = OpChainSpecBuilder::optimism_mainnet().isthmus_activated().build();
+        let validator = EthTransactionValidatorBuilder::new(Arc::new(op_spec.inner.clone()))
+            .no_shanghai()
+            .no_cancun()
+            .build(client, InMemoryBlobStore::default());
+        let evm_config = OpEvmConfig::new(Arc::new(op_spec));
+        let validator = OpTransactionValidator::new(validator).with_evm_config(Some(evm_config));
+
+        let origin = TransactionOrigin::External;
+        let signer = Default::default();
+        let deposit_tx = OpTypedTransaction::Eip1559(TxEip1559 {
+            chain_id: 10,
+            nonce: 0,
+            gas_limit: 21000,
+            max_fee_per_gas: 0,
+            max_priority_fee_per_gas: 0,
+            to: TxKind::Call(Address::ZERO),
+            value: U256::ZERO,
+            access_list: Default::default(),
+            input: Default::default(),
+        });
+        let signature = Signature::test_signature();
+        let signed_tx = OpTransactionSigned::new_unhashed(deposit_tx, signature);
+        let signed_recovered = Recovered::new_unchecked(signed_tx, signer);
+        let len = signed_recovered.encode_2718_len();
+        let pooled_tx = OpPooledTransaction::new(signed_recovered, len);
+        let outcome = validator.validate_one(origin, pooled_tx);
+
+        let err = match outcome {
+            TransactionValidationOutcome::Error(_, err) => err,
+            _ => panic!("Expected invalid transaction"),
+        };
+        assert_eq!(err.to_string(), "block fetch failed");
+    }
+
+    #[test]
+    fn validate_optimism_transaction_interop_tx_exec_fails() {
+        let client = MockEthProvider::<OpTransactionSigned>::default();
+        client.add_block(B256::default(), Block::<OpTransactionSigned>::default());
+        let op_spec = OpChainSpecBuilder::optimism_mainnet().isthmus_activated().build();
+        let validator = EthTransactionValidatorBuilder::new(Arc::new(op_spec.inner.clone()))
+            .no_shanghai()
+            .no_cancun()
+            .build(client, InMemoryBlobStore::default());
+        let evm_config = OpEvmConfig::new(Arc::new(op_spec));
+        let validator = OpTransactionValidator::new(validator).with_evm_config(Some(evm_config));
+
+        let origin = TransactionOrigin::External;
+        let signer = Default::default();
+        let deposit_tx = OpTypedTransaction::Eip1559(TxEip1559 {
+            chain_id: 10,
+            nonce: 0,
+            gas_limit: 21000,
+            max_fee_per_gas: 0,
+            max_priority_fee_per_gas: 0,
+            to: TxKind::Call(Address::ZERO),
+            value: U256::ZERO,
+            access_list: Default::default(),
+            input: Default::default(),
+        });
+        let signature = Signature::test_signature();
+        let signed_tx = OpTransactionSigned::new_unhashed(deposit_tx, signature);
+        let signed_recovered = Recovered::new_unchecked(signed_tx, signer);
+        let len = signed_recovered.encode_2718_len();
+        let pooled_tx = OpPooledTransaction::new(signed_recovered, len);
+        let outcome = validator.validate_one(origin, pooled_tx);
+
+        let err = match outcome {
+            TransactionValidationOutcome::Error(_, err) => err,
+            _ => panic!("Expected invalid transaction"),
+        };
+        assert_eq!(err.to_string(), "transaction execution failed");
     }
 }
