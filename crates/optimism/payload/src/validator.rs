@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_rpc_types_engine::{ExecutionPayload, PayloadError};
-use derive_more::{Constructor, Deref};
+use derive_more::Deref;
 use reth_optimism_consensus::OpConsensusError;
 use reth_optimism_forks::{OpHardfork, OpHardforks};
 use reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
@@ -12,12 +12,19 @@ use reth_provider::StateProviderFactory;
 use tracing::error;
 
 /// Execution payload validator.
-#[derive(Clone, Debug, Deref, Constructor)]
+#[derive(Clone, Debug, Deref)]
 pub struct OpExecutionPayloadValidator<ChainSpec, P> {
     /// Chain spec to validate against.
     #[deref]
     inner: ExecutionPayloadValidator<ChainSpec>,
-    state_provider: Arc<P>,
+    state_provider: P,
+}
+
+impl<ChainSpec, P> OpExecutionPayloadValidator<ChainSpec, P> {
+    /// Returns a new instance.
+    pub const fn new(chain_spec: Arc<ChainSpec>, state_provider: P) -> Self {
+        Self { inner: ExecutionPayloadValidator::new(chain_spec), state_provider }
+    }
 }
 
 impl<ChainSpec, P> OpExecutionPayloadValidator<ChainSpec, P>

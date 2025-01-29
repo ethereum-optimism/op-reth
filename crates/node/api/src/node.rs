@@ -2,6 +2,7 @@
 
 use crate::ConfigureEvm;
 use alloy_rpc_types_engine::JwtSecret;
+use core::fmt;
 use reth_beacon_consensus::BeaconConsensusEngineHandle;
 use reth_consensus::FullConsensus;
 use reth_db_api::{
@@ -28,7 +29,7 @@ pub trait FullNodeTypes: Send + Sync + Unpin + 'static {
     /// Underlying database type used by the node to store and retrieve data.
     type DB: Database + DatabaseMetrics + DatabaseMetadata + Clone + Unpin + 'static;
     /// The provider type used to interact with the node.
-    type Provider: FullProvider<NodeTypesWithDBAdapter<Self::Types, Self::DB>>;
+    type Provider: FullProvider<NodeTypesWithDBAdapter<Self::Types, Self::DB>> + fmt::Debug;
 }
 
 /// An adapter type that adds the builtin provider type to the user configured node types.
@@ -39,7 +40,7 @@ impl<Types, DB, Provider> FullNodeTypes for FullNodeTypesAdapter<Types, DB, Prov
 where
     Types: NodeTypesWithEngine,
     DB: Database + DatabaseMetrics + DatabaseMetadata + Clone + Unpin + 'static,
-    Provider: FullProvider<NodeTypesWithDBAdapter<Types, DB>>,
+    Provider: FullProvider<NodeTypesWithDBAdapter<Types, DB>> + fmt::Debug,
 {
     type Types = Types;
     type DB = DB;

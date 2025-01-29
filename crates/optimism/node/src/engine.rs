@@ -2,6 +2,7 @@ use alloy_rpc_types_engine::{
     ExecutionPayload, ExecutionPayloadEnvelopeV2, ExecutionPayloadSidecar, ExecutionPayloadV1,
     PayloadError,
 };
+use core::fmt;
 use op_alloy_rpc_types_engine::{
     OpExecutionPayloadEnvelopeV3, OpExecutionPayloadEnvelopeV4, OpPayloadAttributes,
 };
@@ -16,12 +17,13 @@ use reth_node_api::{
     PayloadValidator,
 };
 use reth_optimism_chainspec::OpChainSpec;
-use reth_optimism_consensus::OpConsensusError;
 use reth_optimism_forks::{OpHardfork, OpHardforks};
-use reth_optimism_payload_builder::{OpBuiltPayload, OpPayloadBuilderAttributes};
+use reth_optimism_payload_builder::{
+    OpBuiltPayload, OpExecutionPayloadValidator, OpPayloadBuilderAttributes,
+};
 use reth_optimism_primitives::OpBlock;
-use reth_payload_validator::ExecutionPayloadValidator;
 use reth_primitives::SealedBlockFor;
+use reth_provider::StateProviderFactory;
 use reth_rpc_types_compat::engine::payload::block_to_payload;
 use std::sync::Arc;
 
@@ -74,8 +76,7 @@ impl PayloadTypes for OpPayloadTypes {
 /// Validator for Optimism engine API.
 #[derive(Debug, Clone)]
 pub struct OpEngineValidator<P> {
-    inner: OpExecutionPayloadValidator<OpChainSpec>,
-    state_provider: P,
+    inner: OpExecutionPayloadValidator<OpChainSpec, P>,
 }
 
 impl<P> OpEngineValidator<P> {
@@ -91,7 +92,10 @@ impl<P> OpEngineValidator<P> {
     }
 }
 
-impl PayloadValidator for OpEngineValidator {
+impl<P> PayloadValidator for OpEngineValidator<P>
+where
+    P: StateProviderFactory + Unpin + fmt::Debug + 'static,
+{
     type Block = OpBlock;
 
     fn ensure_well_formed_payload(
@@ -103,9 +107,10 @@ impl PayloadValidator for OpEngineValidator {
     }
 }
 
-impl<Types> EngineValidator<Types> for OpEngineValidator
+impl<Types, P> EngineValidator<Types> for OpEngineValidator<P>
 where
     Types: EngineTypes<PayloadAttributes = OpPayloadAttributes>,
+    P: StateProviderFactory + Unpin + fmt::Debug + 'static,
 {
     fn validate_version_specific_fields(
         &self,
