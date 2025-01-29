@@ -57,7 +57,7 @@ jobs:
         run: kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_remote.yaml
 
       - name: Assert that clients advance
-        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100
+        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100 3
 
   notify-on-error:
     needs:
