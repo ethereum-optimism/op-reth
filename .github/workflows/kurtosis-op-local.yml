@@ -8,7 +8,7 @@ on:
       op-node-repo:
         type: string
         required: true
-        description: "An optimism repo (clone) to use for op-node"
+        description: "An optimizm repo (clone) to use for op-node"
         default: https://github.com/ethereum-optimism/optimism.git
 
       op-node-ref:
