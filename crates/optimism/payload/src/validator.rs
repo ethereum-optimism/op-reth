@@ -2,14 +2,14 @@ use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_rpc_types_engine::{ExecutionPayload, PayloadError};
 use derive_more::{Constructor, Deref};
+use reth_optimism_consensus::OpConsensusError;
 use reth_optimism_forks::{OpHardfork, OpHardforks};
+use reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
 use reth_payload_validator::ExecutionPayloadValidator;
 use reth_primitives::{BlockBody, BlockExt, SealedBlock};
 use reth_primitives_traits::SignedTransaction;
 use reth_provider::StateProviderFactory;
 use tracing::error;
-use reth_optimism_consensus::OpConsensusError;
-use reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
 
 /// Execution payload validator.
 #[derive(Clone, Debug, Deref, Constructor)]
@@ -57,10 +57,7 @@ where
         // First parse the block
         let mut block = payload.try_into_block()?;
 
-        if self
-            .chain_spec()
-            .is_fork_active_at_timestamp(OpHardfork::Isthmus, block.timestamp)
-        {
+        if self.chain_spec().is_fork_active_at_timestamp(OpHardfork::Isthmus, block.timestamp) {
             let state = match self.state_provider.latest() {
                 Ok(s) => s,
                 Err(err) => {
@@ -76,20 +73,22 @@ where
             };
 
             // replace the withdrawals root computed by alloy from the block body withdrawals (hack)
-            block.header.withdrawals_root =
-                match state.storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default()).map_err(OpConsensusError::StorageRootCalculationFail) {
-                    Ok(root) => Some(root),
-                    Err(err) => {
-                        error!(target: "payload_builder",
-                            %err,
-                            "Withdrawals storage root failed verification"
-                        );
+            block.header.withdrawals_root = match state
+                .storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default())
+                .map_err(OpConsensusError::StorageRootCalculationFail)
+            {
+                Ok(root) => Some(root),
+                Err(err) => {
+                    error!(target: "payload_builder",
+                        %err,
+                        "Withdrawals storage root failed verification"
+                    );
 
-                        // this is just placeholder until this function can be updated to return a
-                        // new OpPayloadError
-                        return Err(PayloadError::InvalidVersionedHashes)
-                    }
-                };
+                    // this is just placeholder until this function can be updated to return a
+                    // new OpPayloadError
+                    return Err(PayloadError::InvalidVersionedHashes)
+                }
+            };
         }
 
         let sealed_block = block.seal_slow();
