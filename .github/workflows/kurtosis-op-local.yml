@@ -66,7 +66,7 @@ jobs:
       cargo_features: optimism,asm-keccak
       cargo_package: crates/optimism/bin/Cargo.toml
 
-  test-op-geth:
+  test:
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -102,85 +102,14 @@ jobs:
           docker image ls -a
 
       - name: Run kurtosis
-        run: |
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
-          ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
-          GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
-          RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
-          echo "GETH_RPC=http://127.0.0.1:$GETH_PORT" >> $GITHUB_ENV
-          echo "RETH_RPC=http://127.0.0.1:$RETH_PORT" >> $GITHUB_ENV
+        run: kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
 
       - name: Assert that clients advance
-        run: |
-          for i in {1..100}; do
-            sleep 5
-            BLOCK_GETH=$(cast bn --rpc-url $GETH_RPC)
-            BLOCK_RETH=$(cast bn --rpc-url $RETH_RPC)
-
-            if [ $BLOCK_GETH -ge 100 ] && [ $BLOCK_RETH -ge 100 ] ; then exit 0; fi
-            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH Geth: $BLOCK_GETH"
-          done
-          kurtosis service logs -a op-devnet op-el-2-op-reth-op-node-op-kurtosis
-          kurtosis service logs -a op-devnet op-cl-2-op-node-op-reth-op-kurtosis
-          exit 1
-
-  test-no-op-geth:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-    name: Kurtosis without op-geth
-    runs-on: ubuntu-latest
-    needs:
-      - prepare-op-reth
-      - prepare-op-node
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
-
-      - name: Download docker image artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: artifacts--*
-          merge-multiple: true
-          path: /tmp
-
-      - name: Load Docker images
-        run: |
-          # Load all images from artifacts
-          docker load -i /tmp/op_reth_image.tar
-          docker load -i /tmp/op_node_image.tar
-          
-          # List available images
-          docker image ls -a
-
-      - name: Run kurtosis
-        run: |
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local_no_op_geth.yaml
-          ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
-          RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
-          echo "RETH_RPC=http://127.0.0.1:$RETH_PORT" >> $GITHUB_ENV
-
-      - name: Assert that clients advance
-        run: |
-          for i in {1..100}; do
-            sleep 5
-            BLOCK_RETH=$(cast bn --rpc-url $RETH_RPC)
-
-            if [ $BLOCK_RETH -ge 100 ] ; then exit 0; fi
-            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH"
-          done
-          kurtosis service logs -a op-devnet op-el-1-op-reth-op-node-op-kurtosis
-          kurtosis service logs -a op-devnet op-cl-1-op-node-op-reth-op-kurtosis
-          exit 1
+        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100
 
   notify-on-error:
     needs: 
-      - test-op-geth
-      - test-no-op-geth
+      - test
     if: failure()
     runs-on: ubuntu-latest
     steps:
