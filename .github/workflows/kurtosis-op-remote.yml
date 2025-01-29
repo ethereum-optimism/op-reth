@@ -22,7 +22,7 @@ jobs:
       cargo_features: optimism,asm-keccak
       cargo_package: crates/optimism/bin/Cargo.toml
 
-  test-op-geth:
+  test:
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -58,10 +58,14 @@ jobs:
 
       - name: Assert that clients advance
         run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100 3
+      
+      - name: Dump kurtosis logs on failure
+        if: ${{ failure() }}
+        run: ./.github/scripts/dump-kurtosis-logs.sh op-devnet
 
   notify-on-error:
     needs:
-      - test-op-geth
+      - test
     if: failure()
     runs-on: ubuntu-latest
     steps:
