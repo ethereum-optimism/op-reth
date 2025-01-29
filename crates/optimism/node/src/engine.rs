@@ -72,14 +72,15 @@ impl PayloadTypes for OpPayloadTypes {
 
 /// Validator for Optimism engine API.
 #[derive(Debug, Clone)]
-pub struct OpEngineValidator {
-    inner: ExecutionPayloadValidator<OpChainSpec>,
+pub struct OpEngineValidator<P> {
+    inner: OpExecutionPayloadValidator<OpChainSpec>,
+    state_provider: P,
 }
 
-impl OpEngineValidator {
+impl<P> OpEngineValidator<P> {
     /// Instantiates a new validator.
-    pub const fn new(chain_spec: Arc<OpChainSpec>) -> Self {
-        Self { inner: ExecutionPayloadValidator::new(chain_spec) }
+    pub const fn new(chain_spec: Arc<OpChainSpec>, state_provider: P) -> Self {
+        Self { inner: OpExecutionPayloadValidator::new(chain_spec, state_provider) }
     }
 
     /// Returns the chain spec used by the validator.
@@ -95,9 +96,9 @@ impl PayloadValidator for OpEngineValidator {
     fn ensure_well_formed_payload(
         &self,
         payload: ExecutionPayload,
-        sidecar: ExecutionPayloadSidecar,
+        _sidecar: ExecutionPayloadSidecar,
     ) -> Result<SealedBlockFor<Self::Block>, PayloadError> {
-        self.inner.ensure_well_formed_payload(payload, sidecar)
+        self.inner.ensure_well_formed_payload(payload)
     }
 }
 

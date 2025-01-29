@@ -1,12 +1,30 @@
+use alloc::sync::Arc;
+use alloy_consensus::Header;
+use alloy_rpc_types_engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
+use derive_more::{Constructor, Deref};
+use reth_optimism_consensus::isthmus;
+use reth_optimism_forks::{OpHardfork, OpHardforks};
+use reth_payload_validator::ExecutionPayloadValidator;
+use reth_primitives::{BlockBody, BlockExt, SealedBlock};
+use reth_primitives_traits::SignedTransaction;
+use reth_provider::StateProviderFactory;
+use revm::db::BundleState;
+use tracing::error;
+
 /// Execution payload validator.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref, Constructor)]
 pub struct OpExecutionPayloadValidator<ChainSpec, P> {
     /// Chain spec to validate against.
+    #[deref]
     inner: ExecutionPayloadValidator<ChainSpec>,
     state_provider: Arc<P>,
 }
 
-impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
+impl<ChainSpec, P> OpExecutionPayloadValidator<ChainSpec, P>
+where
+    ChainSpec: OpHardforks,
+    P: StateProviderFactory,
+{
     /// Ensures that the given payload does not violate any consensus rules that concern the block's
     /// layout, like:
     ///    - missing or invalid base fee
@@ -32,15 +50,16 @@ impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
     /// <https://github.com/ethereum/execution-apis/blob/fe8e13c288c592ec154ce25c534e26cb7ce0530d/src/engine/cancun.md#specification>
     pub fn ensure_well_formed_payload<T: SignedTransaction>(
         &self,
-        payload: ExecutionPayload,
-        sidecar: ExecutionPayloadSidecar,
+        payload: OpExecutionPayload,
     ) -> Result<SealedBlock<Header, BlockBody<T>>, PayloadError> {
         let expected_hash = payload.block_hash();
 
         // First parse the block
         let mut sealed_block = payload.try_into_block_with_sidecar(&sidecar)?.seal_slow();
 
-        if self.chain_spec.is_fork_active_at_timestamp(OpHardfork::Isthmus, sealed_block.timestamp)
+        if self
+            .chain_spec()
+            .is_fork_active_at_timestamp(OpHardfork::Isthmus, sealed_block.timestamp)
         {
             let state = match self.state_provider.latest() {
                 Ok(s) => s,
@@ -56,8 +75,8 @@ impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
             };
 
             // replace the withdrawals root computed by alloy from the block body withdrawals
-            seal_block.withdrawals_root = match isthmus::verify_withdrawals_storage_root(
-                BundleState::default(),
+            sealed_block.withdrawals_root = match isthmus::verify_withdrawals_storage_root(
+                &BundleState::default(),
                 state,
                 &sealed_block.header,
             ) {
@@ -83,7 +102,12 @@ impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
             })
         }
 
-        if self.is_cancun_active_at_timestamp(sealed_block.timestamp) {
+        if sealed_block.body().has_eip4844_transactions() {
+            // cancun not active but blob transactions present
+            return Err(PayloadError::PreCancunBlockWithBlobTransactions)
+        }
+
+        if self.chain_spec().is_cancun_active_at_timestamp(sealed_block.timestamp) {
             if sealed_block.blob_gas_used.is_none() {
                 // cancun active but blob gas used not present
                 return Err(PayloadError::PostCancunBlockWithoutBlobGasUsed)
@@ -97,10 +121,6 @@ impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
                 return Err(PayloadError::PostCancunWithoutCancunFields)
             }
         } else {
-            if sealed_block.body().has_eip4844_transactions() {
-                // cancun not active but blob transactions present
-                return Err(PayloadError::PreCancunBlockWithBlobTransactions)
-            }
             if sealed_block.blob_gas_used.is_some() {
                 // cancun not active but blob gas used present
                 return Err(PayloadError::PreCancunBlockWithBlobGasUsed)
@@ -115,23 +135,18 @@ impl<ChainSpec: OpHardforks> OpExecutionPayloadValidator<ChainSpec> {
             }
         }
 
-        let shanghai_active = self.is_shanghai_active_at_timestamp(sealed_block.timestamp);
+        let shanghai_active =
+            self.chain_spec().is_shanghai_active_at_timestamp(sealed_block.timestamp);
         if !shanghai_active && sealed_block.body().withdrawals.is_some() {
             // shanghai not active but withdrawals present
             return Err(PayloadError::PreShanghaiBlockWithWithdrawals)
         }
 
-        if !self.is_prague_active_at_timestamp(sealed_block.timestamp) &&
+        if !self.chain_spec().is_prague_active_at_timestamp(sealed_block.timestamp) &&
             sealed_block.body().has_eip7702_transactions()
         {
             return Err(PayloadError::PrePragueBlockWithEip7702Transactions)
         }
-
-        // EIP-4844 checks
-        self.ensure_matching_blob_versioned_hashes(
-            &sealed_block,
-            &sidecar.cancun().cloned().into(),
-        )?;
 
         Ok(sealed_block)
     }
