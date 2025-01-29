@@ -9,7 +9,7 @@
 # 
 # Usage:
 # 
-# ./check-kurtosis-enclave-block-creation.sh <ENCLAVE_NAME> [TARGET_BLOCK_NUMBER]
+# ./check-kurtosis-enclave-block-creation.sh <ENCLAVE_NAME> [TARGET_BLOCK_NUMBER] [NUMBER_OF_NAPS]
 # 
 # 
 
@@ -56,7 +56,7 @@ echo "Got enclave UUID: $ENCLAVE_ID"
 ENCLAVE_SERVICES=$(curl -s $ENCLAVES_API_URL/$ENCLAVE_ID/services)
 ENCLAVE_EL_SERVICES=$(echo $ENCLAVE_SERVICES | jq -r 'to_entries | map(select(.key | startswith("op-el-"))) | map(.value)')
 
-# Now get the EL client UUIDS and arrange them into a single-line space-delimited string
+# Now get the EL client names and RPC ports and arrange them into single-line space-delimited strings
 # 
 # This is useful for bash iteration below
 ENCLAVE_EL_SERVICE_NAMES=$(echo $ENCLAVE_EL_SERVICES | jq -r 'map(.name) | join(" ")')
@@ -64,7 +64,7 @@ ENCLAVE_EL_SERVICE_RPC_PORTS=$(echo $ENCLAVE_EL_SERVICES | jq -r 'map(.public_po
 
 # Make sure we got something
 if [ -z "$ENCLAVE_EL_SERVICE_NAMES" ]; then
-    No EL clients found for enclave $ENCLAVE_NAME
+    echo "No EL clients found for enclave $ENCLAVE_NAME"
     exit 1
 fi
 
@@ -113,19 +113,12 @@ for STEP in $(seq 1 $NUM_NAPS); do
     sleep 5
 done
 
-echo "Target blocks have not been reached for the following services"
+echo "Target blocks have not been reached for the following services:"
 
 for I in "${!ENCLAVE_EL_SERVICE_NAMES_ARRAY[@]}"; do
     SERVICE_NAME=${ENCLAVE_EL_SERVICE_NAMES_ARRAY[$I]}
 
     echo "  $SERVICE_NAME"
-
-    # On the CI we'll dump the logs in collapsible groups
-    if [ -n "$CI" ]; then
-        echo "::group::$SERVICE_NAME"
-        kurtosis service logs -a $ENCLAVE_NAME $SERVICE_NAME
-        echo "::endgroup::"
-    fi
 done
 
 exit 1
