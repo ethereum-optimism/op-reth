@@ -81,6 +81,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
       - name: Download docker image artifacts
         uses: actions/download-artifact@v4
         with:
@@ -98,14 +101,8 @@ jobs:
           # List available images
           docker image ls -a
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
       - name: Run kurtosis
         run: |
-          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-          sudo apt update
-          sudo apt install kurtosis-cli
           kurtosis engine start
           kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
@@ -142,6 +139,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
       - name: Download docker image artifacts
         uses: actions/download-artifact@v4
         with:
@@ -158,14 +158,8 @@ jobs:
           # List available images
           docker image ls -a
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
       - name: Run kurtosis
         run: |
-          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-          sudo apt update
-          sudo apt install kurtosis-cli
           kurtosis engine start
           kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local_no_op_geth.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
