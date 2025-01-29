@@ -5,6 +5,7 @@ use alloy_rpc_types_engine::{
 use op_alloy_rpc_types_engine::{
     OpExecutionPayloadEnvelopeV3, OpExecutionPayloadEnvelopeV4, OpPayloadAttributes,
 };
+use reth_optimism_consensus::OpConsensusError;
 use reth_chainspec::ChainSpec;
 use reth_node_api::{
     payload::{

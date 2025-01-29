@@ -1,15 +1,15 @@
 use alloc::sync::Arc;
 use alloy_consensus::Header;
-use alloy_rpc_types_engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
+use alloy_rpc_types_engine::{ExecutionPayload, PayloadError};
 use derive_more::{Constructor, Deref};
-use reth_optimism_consensus::isthmus;
 use reth_optimism_forks::{OpHardfork, OpHardforks};
 use reth_payload_validator::ExecutionPayloadValidator;
 use reth_primitives::{BlockBody, BlockExt, SealedBlock};
 use reth_primitives_traits::SignedTransaction;
 use reth_provider::StateProviderFactory;
-use revm::db::BundleState;
 use tracing::error;
+use reth_optimism_consensus::OpConsensusError;
+use reth_optimism_primitives::ADDRESS_L2_TO_L1_MESSAGE_PASSER;
 
 /// Execution payload validator.
 #[derive(Clone, Debug, Deref, Constructor)]
@@ -50,21 +50,22 @@ where
     /// <https://github.com/ethereum/execution-apis/blob/fe8e13c288c592ec154ce25c534e26cb7ce0530d/src/engine/cancun.md#specification>
     pub fn ensure_well_formed_payload<T: SignedTransaction>(
         &self,
-        payload: OpExecutionPayload,
+        payload: ExecutionPayload,
     ) -> Result<SealedBlock<Header, BlockBody<T>>, PayloadError> {
         let expected_hash = payload.block_hash();
 
         // First parse the block
-        let mut sealed_block = payload.try_into_block_with_sidecar(&sidecar)?.seal_slow();
+        let mut block = payload.try_into_block()?;
 
         if self
             .chain_spec()
-            .is_fork_active_at_timestamp(OpHardfork::Isthmus, sealed_block.timestamp)
+            .is_fork_active_at_timestamp(OpHardfork::Isthmus, block.timestamp)
         {
             let state = match self.state_provider.latest() {
                 Ok(s) => s,
-                Err(e) => {
+                Err(err) => {
                     error!(target: "payload_builder",
+                        %err,
                         "Failed loading state to verify withdrawals storage root"
                     );
 
@@ -74,25 +75,24 @@ where
                 }
             };
 
-            // replace the withdrawals root computed by alloy from the block body withdrawals
-            sealed_block.withdrawals_root = match isthmus::verify_withdrawals_storage_root(
-                &BundleState::default(),
-                state,
-                &sealed_block.header,
-            ) {
-                Ok(root) => Some(root),
-                Err(err) => {
-                    error!(target: "payload_builder",
-                        %err,
-                        "Withdrawals storage root failed verification"
-                    );
+            // replace the withdrawals root computed by alloy from the block body withdrawals (hack)
+            block.header.withdrawals_root =
+                match state.storage_root(ADDRESS_L2_TO_L1_MESSAGE_PASSER, Default::default()).map_err(OpConsensusError::StorageRootCalculationFail) {
+                    Ok(root) => Some(root),
+                    Err(err) => {
+                        error!(target: "payload_builder",
+                            %err,
+                            "Withdrawals storage root failed verification"
+                        );
 
-                    // this is just placeholder until this function can be updated to return a new
-                    // OpPayloadError
-                    return Err(PayloadError::InvalidVersionedHashes)
-                }
-            }
+                        // this is just placeholder until this function can be updated to return a
+                        // new OpPayloadError
+                        return Err(PayloadError::InvalidVersionedHashes)
+                    }
+                };
         }
+
+        let sealed_block = block.seal_slow();
 
         // Ensure the hash included in the payload matches the block hash
         if expected_hash != sealed_block.hash() {
@@ -116,10 +116,6 @@ where
                 // cancun active but excess blob gas not present
                 return Err(PayloadError::PostCancunBlockWithoutExcessBlobGas)
             }
-            if sidecar.cancun().is_none() {
-                // cancun active but cancun fields not present
-                return Err(PayloadError::PostCancunWithoutCancunFields)
-            }
         } else {
             if sealed_block.blob_gas_used.is_some() {
                 // cancun not active but blob gas used present
@@ -128,10 +124,6 @@ where
             if sealed_block.excess_blob_gas.is_some() {
                 // cancun not active but excess blob gas present
                 return Err(PayloadError::PreCancunBlockWithExcessBlobGas)
-            }
-            if sidecar.cancun().is_some() {
-                // cancun not active but cancun fields present
-                return Err(PayloadError::PreCancunWithCancunFields)
             }
         }
 
