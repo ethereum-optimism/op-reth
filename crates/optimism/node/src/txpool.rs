@@ -540,8 +540,10 @@ pub struct OpL1BlockInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::txpool::{OpPooledTransaction, OpTransactionValidator};
-    use crate::OpEvmConfig;
+    use crate::{
+        txpool::{OpPooledTransaction, OpTransactionValidator},
+        OpEvmConfig,
+    };
     use alloy_consensus::{Block, TxEip1559};
     use alloy_eips::eip2718::Encodable2718;
     use alloy_primitives::{Address, PrimitiveSignature as Signature, TxKind, B256, U256};
