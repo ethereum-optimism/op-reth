@@ -103,7 +103,6 @@ jobs:
 
       - name: Run kurtosis
         run: |
-          kurtosis engine start
           kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
@@ -160,7 +159,6 @@ jobs:
 
       - name: Run kurtosis
         run: |
-          kurtosis engine start
           kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local_no_op_geth.yaml
           ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
           RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
