@@ -48,7 +48,7 @@ concurrency:
 
 jobs:
   prepare-op-geth:
-    name: Prepare op-geth docker image
+    name: Prepare op-geth docker image (${{ inputs.op-geth-repo }}@${{ inputs.op-geth-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
     with:
       repo: ${{ inputs.op-geth-repo }}
@@ -57,7 +57,7 @@ jobs:
       artifact_name: op_geth_image
 
   prepare-op-node:
-    name: Prepare op-node docker image
+    name: Prepare op-node docker image (${{ inputs.op-node-repo }}@${{ inputs.op-node-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
     with:
       repo: ${{ inputs.op-node-repo }}
@@ -68,7 +68,7 @@ jobs:
       artifact_name: op_node_image
 
   prepare-op-reth:
-    name: Prepare op-reth docker image
+    name: Prepare op-reth docker image (${{ github.repository }}@${{ github.ref }})
     uses: ./.github/workflows/prepare-op-reth.yml
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
