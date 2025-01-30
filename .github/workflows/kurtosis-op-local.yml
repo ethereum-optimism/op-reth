@@ -88,6 +88,8 @@ jobs:
       - prepare-op-reth
       - prepare-op-geth
       - prepare-op-node
+    env:
+      ENCLAVE_NAME: op-devnet
     steps:
       - uses: actions/checkout@v4
         with:
