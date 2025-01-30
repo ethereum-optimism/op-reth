@@ -125,6 +125,6 @@ jobs:
       - name: Assert that clients advance
         run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
 
-      - name: Dump kurtosis logs on failure
-        if: ${{ failure() }}
+      - name: Dump kurtosis logs
+        if: ${{ always() }}
         run: ./.github/scripts/kurtosis-dump-logs.sh $ENCLAVE_NAME
