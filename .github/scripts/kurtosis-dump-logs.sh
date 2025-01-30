@@ -9,7 +9,7 @@
 # 
 # Usage:
 # 
-# ./dump-kurtosis-logs.sh <ENCLAVE_NAME>
+# ./kurtosis-dump-logs.sh <ENCLAVE_NAME>
 # 
 # 
 

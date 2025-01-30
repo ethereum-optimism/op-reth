@@ -118,11 +118,11 @@ jobs:
         run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args }}.yaml
 
       - name: Assert that clients advance
-        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh $ENCLAVE_NAME
+        run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
 
       - name: Dump kurtosis logs on failure
         if: ${{ failure() }}
-        run: ./.github/scripts/dump-kurtosis-logs.sh $ENCLAVE_NAME
+        run: ./.github/scripts/kurtosis-dump-logs.sh $ENCLAVE_NAME
 
   notify-on-error:
     needs: 
