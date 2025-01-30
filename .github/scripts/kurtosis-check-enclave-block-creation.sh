@@ -39,12 +39,15 @@ echo "Checking whether EL clients in enclave $ENCLAVE_NAME reach target block $T
 
 # Get the enclave UUID from the API
 # 
-# The | values at the end of the j1 transformation will convert null to an empty string
+# The API reponse is a JSON object with UUIDs as keys. To get the UUID we need to find a value
+# with a matching "name" property.
+# 
+# The "| values" at the end of the jq transformation will convert null to an empty string
 ENCLAVE_ID=$(curl -s $ENCLAVES_API_URL | jq -r 'to_entries | map(select(.value.name == "'$ENCLAVE_NAME'")) | .[0].key | values')
 
 # Make sure we got something
 if [ -z "$ENCLAVE_ID" ]; then
-    No enclave found for enclave $ENCLAVE_NAME
+    echo "No enclave found for enclave $ENCLAVE_NAME"
     exit 1
 fi
 
