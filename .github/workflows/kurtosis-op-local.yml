@@ -2,7 +2,7 @@
 
 name: Run kurtosis
 
-run-name: "Run kurtosis (${{ inputs.images }} images) ${{ inputs.images == 'local' && format('[op-geth: {0}:{1}; op-node: {2}:{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }})"
+run-name: "Run kurtosis (${{ inputs.images }} images) ${{ inputs.images == 'local' && format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }})"
 on:
   workflow_dispatch:
     inputs:
@@ -17,8 +17,8 @@ on:
       op-node-repo:
         type: string
         required: true
-        description: "An optimizm repo (clone) to use for op-node"
-        default: https://github.com/ethereum-optimism/optimism.git
+        description: "An optimizm repo (clone) to use for op-node (formatted as org/repo)"
+        default: ethereum-optimism/optimism
 
       op-node-ref:
         type: string
@@ -29,8 +29,8 @@ on:
       op-geth-repo:
         type: string
         required: true
-        description: "An op-geth repo (clone) to use for op-geth"
-        default: https://github.com/ethereum-optimism/op-geth.git
+        description: "An op-geth repo (clone) to use for op-geth (formatted as org/repo)"
+        default: ethereum-optimism/op-geth
 
       op-geth-ref:
         type: string
