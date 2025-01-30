@@ -234,7 +234,7 @@ impl EthPoolTransaction for OpPooledTransaction {
 #[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum InteropValidationError {
     /// Block fetch failed.
-    #[display("block fetch failed")]
+    #[display("latest block fetch failed")]
     BlockFetchFailed,
     /// Failed to load state.
     #[display("failed to load state")]
