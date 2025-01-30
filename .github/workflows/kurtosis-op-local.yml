@@ -2,18 +2,15 @@
 
 name: Run kurtosis
 
-run-name: "Run kurtosis (${{ inputs.images }} images) ${{ format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }}"
+run-name: "Run kurtosis ${{ inputs.filter && format('(only arg files matching {0})', inputs.filter) || '' }} ${{ format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }}"
 on:
   workflow_dispatch:
     inputs:
-      images:
-        type: choice
-        required: true
-        description: "The variation of args files to use. Local means the images will be built, remote means already published images will be used"
-        options:
-          - local
-          - remote
-        default: remote  
+      filter:
+        type: string
+        required: false
+        description: "A glob-style expression to filter the kurtosis args files, e.g. 'local', 'remote', 'no_op_geth' etc"
+        default: ''
       op-node-repo:
         type: string
         required: true
@@ -49,6 +46,9 @@ jobs:
   prepare-op-geth:
     name: Prepare op-geth docker image (${{ inputs.op-geth-repo }}@${{ inputs.op-geth-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       repo: ${{ inputs.op-geth-repo }}
       ref: ${{ inputs.op-geth-ref }}
@@ -58,6 +58,9 @@ jobs:
   prepare-op-node:
     name: Prepare op-node docker image (${{ inputs.op-node-repo }}@${{ inputs.op-node-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       repo: ${{ inputs.op-node-repo }}
       ref: ${{ inputs.op-node-ref }}
@@ -69,6 +72,9 @@ jobs:
   prepare-op-reth:
     name: Prepare op-reth docker image (${{ github.repository }}@${{ github.ref }})
     uses: ./.github/workflows/prepare-op-reth.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
       binary_name: op-reth
@@ -96,7 +102,7 @@ jobs:
         id: prepare
         run: |
           # We use a helper shell script to format a list of matching yaml files into a github-actions-compatible matrix
-          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh ./.github/assets/kurtosis_op_network_params_${{ inputs.images }}_*.yaml)
+          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh "./.github/assets/kurtosis_op_network_params_*${{ inputs.filter }}*.yaml")
           
           # And we use the matrix as an output of this step
           echo "matrix=$MATRIX"  >> $GITHUB_OUTPUT
