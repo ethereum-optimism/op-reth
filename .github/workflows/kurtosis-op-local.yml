@@ -2,25 +2,19 @@
 
 name: Run kurtosis
 
-run-name: Run kurtosis (${{ inputs.args }})
+run-name: Run kurtosis (${{ inputs.images }} images)
 
 on:
   workflow_dispatch:
     inputs:
-      args:
+      images:
         type: choice
         required: true
-        description: "Kurtosis args file to use"
+        description: "The variation of args files to use. Local means the images will be built, remote means already published images will be used"
         options:
-          - kurtosis_op_network_params_local_no_op_geth
-          - kurtosis_op_network_params_local_no_op_reth
-          - kurtosis_op_network_params_local_op_reth_sequencer
-          - kurtosis_op_network_params_local
-          - kurtosis_op_network_params_remote_no_op_geth
-          - kurtosis_op_network_params_remote_no_op_reth
-          - kurtosis_op_network_params_remote_op_reth_sequencer
-          - kurtosis_op_network_params_remote
-        default: kurtosis_op_network_params_local
+          - local
+          - remote
+        default: remote  
       op-node-repo:
         type: string
         required: true
@@ -82,13 +76,43 @@ jobs:
       cargo_features: optimism,asm-keccak
       cargo_package: crates/optimism/bin/Cargo.toml
 
-  test:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-    name: Kurtosis
+  # This job expands the "images" input parameter into a list of matching kurtosis args files
+  # and formats them into a JSON-encoded matrix
+  # 
+  # This is so that we can just pick "local" or "remote" from a dropdown
+  # and based on the value we select, an appropriate matrix of jobs will be spun up
+  # without us needed to copy-paste sections of this workflow whenever a new argument file is added
+  prepare-job-matrix:
+    name: Prepare kurtosis test matrix
     runs-on: ubuntu-latest
+    outputs:
+      # The output of this job is the JSON-encoded github actions matrix
+      matrix: ${{ steps.prepare.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Prepare matrix
+        id: prepare
+        run: |
+          # We use a helper shell script to format a list of matching yaml files into a github-actions-compatible matrix
+          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh ./.github/assets/kurtosis_op_network_params_${{ inputs.images }}_*.yaml)
+          
+          # And we use the matrix as an output of this step
+          echo "matrix=$MATRIX"  >> $GITHUB_OUTPUT
+
+
+  test:
+    name: Kurtosis (${{ matrix.args }})
+    runs-on: ubuntu-latest
+    strategy:
+      # This job uses the dynamic matrix created in prepare-job-matrix job
+      matrix: ${{ fromJson(needs.prepare-job-matrix.outputs.matrix) }}
+      fail-fast: false
+    timeout-minutes: 60
     needs:
+      - prepare-job-matrix
       - prepare-op-reth
       - prepare-op-geth
       - prepare-op-node
@@ -119,8 +143,8 @@ jobs:
           # List available images
           docker image ls -a
 
-      - name: Run kurtosis
-        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args }}.yaml
+      - name: Run kurtosis using ${{ matrix.args }}
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file .github/assets/${{ matrix.args }}.yaml
 
       - name: Assert that clients advance
         run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
