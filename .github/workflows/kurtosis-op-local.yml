@@ -2,7 +2,7 @@
 
 name: Run kurtosis
 
-run-name: "Run kurtosis (${{ inputs.images }} images) ${{ inputs.images == 'local' && format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) || '' }})"
+run-name: "Run kurtosis (${{ inputs.images }} images) ${{ inputs.images == 'local' && format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) || '' }}"
 on:
   workflow_dispatch:
     inputs:
