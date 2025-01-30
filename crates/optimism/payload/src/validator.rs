@@ -1,6 +1,8 @@
+//! Validates execution payload wrt Optimism consensus rules
+
 use alloc::sync::Arc;
 use alloy_consensus::Header;
-use alloy_rpc_types_engine::{ExecutionPayload, PayloadError};
+use alloy_rpc_types_engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
 use derive_more::Deref;
 use reth_optimism_consensus::OpConsensusError;
 use reth_optimism_forks::{OpHardfork, OpHardforks};
@@ -58,11 +60,12 @@ where
     pub fn ensure_well_formed_payload<T: SignedTransaction>(
         &self,
         payload: ExecutionPayload,
+        sidecar: ExecutionPayloadSidecar,
     ) -> Result<SealedBlock<Header, BlockBody<T>>, PayloadError> {
         let expected_hash = payload.block_hash();
 
         // First parse the block
-        let mut block = payload.try_into_block()?;
+        let mut block = payload.try_into_block_with_sidecar(&sidecar)?;
 
         if self.chain_spec().is_fork_active_at_timestamp(OpHardfork::Isthmus, block.timestamp) {
             let state = match self.state_provider.latest() {
@@ -109,7 +112,7 @@ where
         }
 
         if sealed_block.body().has_eip4844_transactions() {
-            // cancun not active but blob transactions present
+            // todo: needs new error type OpPayloadError
             return Err(PayloadError::PreCancunBlockWithBlobTransactions)
         }
 
@@ -122,6 +125,10 @@ where
                 // cancun active but excess blob gas not present
                 return Err(PayloadError::PostCancunBlockWithoutExcessBlobGas)
             }
+            if sidecar.cancun().is_none() {
+                // cancun active but cancun fields not present
+                return Err(PayloadError::PostCancunWithoutCancunFields)
+            }
         } else {
             if sealed_block.blob_gas_used.is_some() {
                 // cancun not active but blob gas used present
@@ -130,6 +137,10 @@ where
             if sealed_block.excess_blob_gas.is_some() {
                 // cancun not active but excess blob gas present
                 return Err(PayloadError::PreCancunBlockWithExcessBlobGas)
+            }
+            if sidecar.cancun().is_some() {
+                // cancun not active but cancun fields present
+                return Err(PayloadError::PreCancunWithCancunFields)
             }
         }
 

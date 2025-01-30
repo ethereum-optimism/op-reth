@@ -9,6 +9,7 @@ use alloy_provider::{
 use alloy_rpc_types_engine::PayloadAttributes;
 use alloy_rpc_types_eth::TransactionRequest;
 use alloy_signer::SignerSync;
+use core::fmt;
 use rand::{seq::SliceRandom, Rng};
 use reth_e2e_test_utils::{wallet::Wallet, NodeHelperType, TmpDB};
 use reth_node_api::NodeTypesWithDBAdapter;
@@ -38,7 +39,7 @@ pub(crate) async fn advance_with_random_transactions<Provider>(
     finalize: bool,
 ) -> eyre::Result<()>
 where
-    Provider: FullProvider<NodeTypesWithDBAdapter<EthereumNode, TmpDB>>,
+    Provider: FullProvider<NodeTypesWithDBAdapter<EthereumNode, TmpDB>> + fmt::Debug,
 {
     let provider = ProviderBuilder::new().with_recommended_fillers().on_http(node.rpc_url());
     let signers = Wallet::new(1).with_chain_id(provider.get_chain_id().await?).gen();
