@@ -143,7 +143,7 @@ jobs:
           docker image ls -a
 
       - name: Run kurtosis using ${{ matrix.args }}
-        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file .github/assets/${{ matrix.args }}.yaml
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file ${{ matrix.args }}
 
       - name: Assert that clients advance
         run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
