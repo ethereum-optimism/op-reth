@@ -32,7 +32,7 @@ ENCLAVE_ID=$(curl -s $ENCLAVES_API_URL | jq -r 'to_entries | map(select(.value.n
 
 # Make sure we got something
 if [ -z "$ENCLAVE_ID" ]; then
-    No enclave found for enclave $ENCLAVE_NAME
+    echo "No enclave found for enclave $ENCLAVE_NAME"
     exit 1
 fi
 
