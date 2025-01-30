@@ -1,5 +1,7 @@
 //! Optimism block execution strategy.
 
+use core::mem;
+
 use crate::{l1::ensure_create2_deployer, OpBlockExecutionError, OpEvmConfig};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use alloy_consensus::{Eip658Value, Header, Receipt, Transaction as _};
@@ -18,8 +20,8 @@ use reth_evm::{
     ConfigureEvm, TxEnvOverrides,
 };
 use reth_optimism_chainspec::OpChainSpec;
-use reth_optimism_consensus::validate_block_post_execution;
-use reth_optimism_forks::OpHardfork;
+use reth_optimism_consensus::{validate_block_post_execution, validation::isthmus};
+use reth_optimism_forks::{OpHardfork, OpHardforks};
 use reth_optimism_primitives::{OpBlock, OpPrimitives, OpReceipt, OpTransactionSigned};
 use reth_primitives::BlockWithSenders;
 use reth_primitives_traits::SignedTransaction;
@@ -260,6 +262,18 @@ where
                     .then_some(1),
                 }),
             });
+        }
+
+        // isthmus verification
+        if self.chain_spec.is_isthmus_active_at_timestamp(block.timestamp) {
+            let state_updates = mem::take(&mut evm.db_mut().bundle_state);
+            drop(evm);
+            isthmus::verify_withdrawals_storage_root(
+                &state_updates,
+                &*self.state.database,
+                &block.header,
+            )
+            .map_err(OpBlockExecutionError::Consensus)?;
         }
 
         Ok(ExecuteOutput { receipts, gas_used: cumulative_gas_used })

@@ -1,5 +1,6 @@
 //! Utilities for end-to-end tests.
 
+use core::fmt;
 use node::NodeTestContext;
 use reth_chainspec::EthChainSpec;
 use reth_db::{test_utils::TempDatabase, DatabaseEnv};
@@ -120,6 +121,7 @@ pub async fn setup_engine<N>(
 where
     N: Default
         + Node<TmpNodeAdapter<N, BlockchainProvider2<NodeTypesWithDBAdapter<N, TmpDB>>>>
+        + fmt::Debug
         + NodeTypesWithEngine
         + NodeTypesForProvider,
     N::ComponentsBuilder: NodeComponentsBuilder<

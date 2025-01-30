@@ -1,3 +1,8 @@
+//! Verification of blocks w.r.t. Optimism hardforks.
+
+pub mod canyon;
+pub mod isthmus;
+
 use crate::proof::calculate_receipt_root_optimism;
 use alloy_consensus::TxReceipt;
 use alloy_primitives::{Bloom, B256};

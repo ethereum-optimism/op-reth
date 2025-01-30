@@ -17,6 +17,14 @@ reth-chainspec.workspace = true
 reth-consensus-common.workspace = true
 reth-consensus.workspace = true
 reth-primitives.workspace = true
+reth-trie-common.workspace = true
+reth-storage-api.workspace = true
+reth-storage-errors.workspace = true
+reth-primitives-traits.workspace = true
+reth-trie = { workspace = true, features = ["test-utils"] }
+reth-trie-db.workspace = true
+reth-db-api.workspace = true
+reth-execution-errors.workspace = true
 
 # op-reth
 reth-optimism-forks.workspace = true
@@ -29,13 +37,28 @@ alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-consensus.workspace = true
 alloy-trie.workspace = true
+revm.workspace = true
 
+# misc
+derive_more = { workspace = true, features = ["display", "error"] }
 tracing.workspace = true
 
 [dev-dependencies]
-alloy-primitives.workspace = true
+reth-provider = { workspace = true, features = ["test-utils"] }
+reth-trie-db.workspace = true
+reth-db-common.workspace = true
+reth-optimism-node.workspace = true
+reth-revm.workspace = true
 op-alloy-consensus.workspace = true
-reth-optimism-chainspec.workspace = true
+alloy-chains.workspace = true
 
 [features]
-optimism = ["reth-primitives/optimism", "reth-optimism-primitives/optimism"]
+optimism = [
+    "reth-primitives/optimism",
+    "reth-optimism-primitives/optimism",
+    "reth-primitives-traits/op",
+    "reth-provider/optimism",
+    "revm/optimism",
+    "reth-db-api/optimism",
+    "reth-optimism-node/optimism",
+]

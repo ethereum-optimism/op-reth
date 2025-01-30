@@ -6,8 +6,6 @@
 use alloy_eips::{eip4895::Withdrawal, eip7685::Requests};
 use alloy_sol_macro::sol;
 use alloy_sol_types::SolCall;
-#[cfg(feature = "optimism")]
-use reth::revm::primitives::OptimismFields;
 use reth::{
     api::{ConfigureEvm, ConfigureEvmEnv, NodeTypesWithEngine},
     builder::{components::ExecutorBuilder, BuilderContext, FullNodeTypes},
@@ -264,10 +262,7 @@ fn fill_tx_env_with_system_contract_call(
         access_list: Vec::new(),
         // blob fields can be None for this tx
         blob_hashes: Vec::new(),
-        max_fee_per_blob_gas: None,
-        authorization_list: None,
-        #[cfg(feature = "optimism")]
-        optimism: OptimismFields::default(),
+        ..Default::default()
     };
 
     // ensure the block gas limit is >= the tx

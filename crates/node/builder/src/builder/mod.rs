@@ -10,6 +10,7 @@ use crate::{
     BlockReaderFor, DefaultNodeLauncher, LaunchNode, Node, NodeHandle,
 };
 use alloy_eips::eip4844::env_settings::EnvKzgSettings;
+use core::fmt;
 use futures::Future;
 use reth_blockchain_tree::externals::NodeTypesForTree;
 use reth_chainspec::{EthChainSpec, EthereumHardforks, Hardforks};
@@ -258,7 +259,7 @@ where
     ) -> NodeBuilderWithTypes<FullNodeTypesAdapter<T, DB, P>>
     where
         T: NodeTypesWithEngine<ChainSpec = ChainSpec> + NodeTypesForProvider,
-        P: FullProvider<NodeTypesWithDBAdapter<T, DB>>,
+        P: FullProvider<NodeTypesWithDBAdapter<T, DB>> + fmt::Debug,
     {
         NodeBuilderWithTypes::new(self.config, self.database)
     }
@@ -319,7 +320,7 @@ where
     ) -> WithLaunchContext<NodeBuilderWithTypes<FullNodeTypesAdapter<T, DB, P>>>
     where
         T: NodeTypesWithEngine<ChainSpec = ChainSpec> + NodeTypesForProvider,
-        P: FullProvider<NodeTypesWithDBAdapter<T, DB>>,
+        P: FullProvider<NodeTypesWithDBAdapter<T, DB>> + fmt::Debug,
     {
         WithLaunchContext {
             builder: self.builder.with_types_and_provider(),
