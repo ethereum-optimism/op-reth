@@ -38,30 +38,23 @@ fi
 
 echo "Got enclave UUID: $ENCLAVE_ID"
 
-# Now get all the OP client services
-# 
-# We assume the convention is to name them op-xxx
+# Now get all the service names
 ENCLAVE_SERVICES=$(curl -s $ENCLAVES_API_URL/$ENCLAVE_ID/services)
-ENCLAVE_OP_SERVICES=$(echo $ENCLAVE_SERVICES | jq -r 'to_entries | map(select(.key | startswith("op-"))) | map(.value)')
-
-# Now get the OP client names and arrange them into a single-line space-delimited string
-# 
-# This is useful for bash iteration below
-ENCLAVE_OP_SERVICE_NAMES=$(echo $ENCLAVE_OP_SERVICES | jq -r 'map(.name) | join(" ")')
+ENCLAVE_SERVICES_NAMES=$(echo $ENCLAVE_SERVICES | jq -r 'keys_unsorted | join(" ")')
 
 # Make sure we got something
-if [ -z "$ENCLAVE_OP_SERVICE_NAMES" ]; then
-    echo "No OP clients found for enclave $ENCLAVE_NAME"
-    exit 1
+if [ -z "$ENCLAVE_SERVICES_NAMES" ]; then
+    echo "No clients found for enclave $ENCLAVE_NAME"
+    exit 0
 fi
 
-echo "Got enclave OP services: $ENCLAVE_OP_SERVICE_NAMES"
+echo "Got enclave services: $ENCLAVE_SERVICES_NAMES"
 
 # Convert the list into a bash array
-ENCLAVE_OP_SERVICE_NAMES_ARRAY=($ENCLAVE_OP_SERVICE_NAMES)
+ENCLAVE_SERVICE_NAMES_ARRAY=($ENCLAVE_SERVICES_NAMES)
 
 # Iterate over the names/RPC ports arrays
-for SERVICE_NAME in "${ENCLAVE_OP_SERVICE_NAMES_ARRAY[@]}"; do
+for SERVICE_NAME in "${ENCLAVE_SERVICE_NAMES_ARRAY[@]}"; do
     # We use the github actions grouping to get a nicer output
     echo "::group::$SERVICE_NAME"
     kurtosis service logs -a $ENCLAVE_NAME $SERVICE_NAME
