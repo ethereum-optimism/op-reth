@@ -5,6 +5,16 @@ name: Run kurtosis (local images)
 on:
   workflow_dispatch:
     inputs:
+      args:
+        type: choice
+        required: true
+        description: "Kurtosis args file to use"
+        options:
+          - kurtosis_op_network_params_local_no_op_geth
+          - kurtosis_op_network_params_local_no_op_reth
+          - kurtosis_op_network_params_local_op_reth_sequencer
+          - kurtosis_op_network_params_local
+        default: kurtosis_op_network_params_local
       op-node-repo:
         type: string
         required: true
@@ -70,8 +80,11 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-    name: Kurtosis with op-geth
+    name: Kurtosis (${{ inputs.args }})
     runs-on: ubuntu-latest
+    # We store the enclave name for easy access here
+    env:
+      ENCLAVE_NAME: op-devnet
     needs:
       - prepare-op-reth
       - prepare-op-geth
@@ -102,14 +115,14 @@ jobs:
           docker image ls -a
 
       - name: Run kurtosis
-        run: kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file .github/assets/${{ inputs.args }}.yaml
 
       - name: Assert that clients advance
-        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh op-devnet 100
+        run: ./.github/scripts/check-kurtosis-enclave-block-creation.sh $ENCLAVE_NAME
 
       - name: Dump kurtosis logs on failure
         if: ${{ failure() }}
-        run: ./.github/scripts/dump-kurtosis-logs.sh op-devnet
+        run: ./.github/scripts/dump-kurtosis-logs.sh $ENCLAVE_NAME
 
   notify-on-error:
     needs: 
