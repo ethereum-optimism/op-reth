@@ -9,7 +9,7 @@
 # 
 # Usage:
 # 
-# ./check-kurtosis-enclave-block-creation.sh <ENCLAVE_NAME> [TARGET_BLOCK_NUMBER] [NUMBER_OF_NAPS]
+# ./kurtosis-check-enclave-block-creation.sh <ENCLAVE_NAME> [TARGET_BLOCK_NUMBER] [NUMBER_OF_NAPS]
 # 
 # 
 
