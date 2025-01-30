@@ -1,6 +1,8 @@
 # Runs simple OP stack setup in Kurtosis
 
-name: Run kurtosis (local images)
+name: Run kurtosis
+
+run-name: Run kurtosis (${{ inputs.args }})
 
 on:
   workflow_dispatch:
@@ -80,7 +82,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-    name: Kurtosis (${{ inputs.args }})
+    name: Kurtosis
     runs-on: ubuntu-latest
     # We store the enclave name for easy access here
     env:
