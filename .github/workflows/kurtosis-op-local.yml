@@ -101,11 +101,27 @@ jobs:
       - name: Prepare matrix
         id: prepare
         run: |
+          # Just to keep things DRY
+          ASSETS_PREFIX="./.github/assets/kurtosis_op_network_params_"
+
+          # If the filter does not match anything, we want the script to error out
+          # 
+          # The default behaviour of globs with no matches it to return the expression
+          # so we'll adjust it to error out if there are no matches
+          compgen -G "$ASSETS_PREFIX*${{ inputs.filter }}*.yaml" || { echo '**No kurtosis args files matching filter `${{ inputs.filter }}`**' >> $GITHUB_STEP_SUMMARY; exit 1; }
+
           # We use a helper shell script to format a list of matching yaml files into a github-actions-compatible matrix
-          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh "./.github/assets/kurtosis_op_network_params_*${{ inputs.filter }}*.yaml")
+          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh $ASSETS_PREFIX*${{ inputs.filter }}*.yaml)
           
           # And we use the matrix as an output of this step
           echo "matrix=$MATRIX"  >> $GITHUB_OUTPUT
+
+          # Finally we make things visible to the user by creating a github job summary markdown
+          echo '### Kurtosis argument files used' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          # We format the list of matching files as a markdown list
+          printf -- '- `%s`\n' $ASSETS_PREFIX*${{ inputs.filter }}*.yaml >> $GITHUB_STEP_SUMMARY
 
 
   test:
