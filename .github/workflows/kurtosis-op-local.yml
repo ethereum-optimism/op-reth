@@ -84,9 +84,6 @@ jobs:
       fail-fast: false
     name: Kurtosis
     runs-on: ubuntu-latest
-    # We store the enclave name for easy access here
-    env:
-      ENCLAVE_NAME: op-devnet
     needs:
       - prepare-op-reth
       - prepare-op-geth
