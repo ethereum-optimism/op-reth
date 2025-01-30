@@ -124,16 +124,3 @@ jobs:
       - name: Dump kurtosis logs on failure
         if: ${{ failure() }}
         run: ./.github/scripts/kurtosis-dump-logs.sh $ENCLAVE_NAME
-
-  notify-on-error:
-    needs: 
-      - test
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Slack Webhook Action
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: "Failed run: https://github.com/paradigmxyz/reth/actions/runs/${{ github.run_id }}"
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
