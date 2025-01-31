@@ -1,15 +1,21 @@
 # Runs simple OP stack setup in Kurtosis
 
-name: Run kurtosis (local images)
+name: Run kurtosis
 
+run-name: "Run kurtosis ${{ inputs.filter && format('(only arg files matching {0})', inputs.filter) || '' }} ${{ format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }}"
 on:
   workflow_dispatch:
     inputs:
+      filter:
+        type: string
+        required: false
+        description: "A glob-style expression to filter the kurtosis args files, e.g. 'local', 'remote', 'no_op_geth' etc"
+        default: ''
       op-node-repo:
         type: string
         required: true
-        description: "An optimizm repo (clone) to use for op-node"
-        default: https://github.com/ethereum-optimism/optimism.git
+        description: "An optimizm repo (clone) to use for op-node (formatted as org/repo)"
+        default: ethereum-optimism/optimism
 
       op-node-ref:
         type: string
@@ -20,8 +26,8 @@ on:
       op-geth-repo:
         type: string
         required: true
-        description: "An op-geth repo (clone) to use for op-geth"
-        default: https://github.com/ethereum-optimism/op-geth.git
+        description: "An op-geth repo (clone) to use for op-geth (formatted as org/repo)"
+        default: ethereum-optimism/op-geth
 
       op-geth-ref:
         type: string
@@ -38,8 +44,11 @@ concurrency:
 
 jobs:
   prepare-op-geth:
-    name: Prepare op-geth docker image
+    name: Prepare op-geth docker image (${{ inputs.op-geth-repo }}@${{ inputs.op-geth-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       repo: ${{ inputs.op-geth-repo }}
       ref: ${{ inputs.op-geth-ref }}
@@ -47,8 +56,11 @@ jobs:
       artifact_name: op_geth_image
 
   prepare-op-node:
-    name: Prepare op-node docker image
+    name: Prepare op-node docker image (${{ inputs.op-node-repo }}@${{ inputs.op-node-ref }})
     uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       repo: ${{ inputs.op-node-repo }}
       ref: ${{ inputs.op-node-ref }}
@@ -58,24 +70,75 @@ jobs:
       artifact_name: op_node_image
 
   prepare-op-reth:
-    name: Prepare op-reth docker image
+    name: Prepare op-reth docker image (${{ github.repository }}@${{ github.ref }})
     uses: ./.github/workflows/prepare-op-reth.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
     with:
       image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
       binary_name: op-reth
       cargo_features: optimism,asm-keccak
       cargo_package: crates/optimism/bin/Cargo.toml
 
-  test-op-geth:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-    name: Kurtosis with op-geth
+  # This job expands the "images" input parameter into a list of matching kurtosis args files
+  # and formats them into a JSON-encoded matrix
+  # 
+  # This is so that we can just pick "local" or "remote" from a dropdown
+  # and based on the value we select, an appropriate matrix of jobs will be spun up
+  # without us needed to copy-paste sections of this workflow whenever a new argument file is added
+  prepare-job-matrix:
+    name: Prepare kurtosis test matrix
     runs-on: ubuntu-latest
+    outputs:
+      # The output of this job is the JSON-encoded github actions matrix
+      matrix: ${{ steps.prepare.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Prepare matrix
+        id: prepare
+        run: |
+          # Just to keep things DRY
+          ASSETS_PREFIX="./.github/assets/kurtosis_op_network_params_"
+
+          # If the filter does not match anything, we want the script to error out
+          # 
+          # The default behaviour of globs with no matches it to return the expression
+          # so we'll adjust it to error out if there are no matches
+          compgen -G "$ASSETS_PREFIX*${{ inputs.filter }}*.yaml" || { echo '**No kurtosis args files matching filter `${{ inputs.filter }}`**' >> $GITHUB_STEP_SUMMARY; exit 1; }
+
+          # We use a helper shell script to format a list of matching yaml files into a github-actions-compatible matrix
+          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh $ASSETS_PREFIX*${{ inputs.filter }}*.yaml)
+          
+          # And we use the matrix as an output of this step
+          echo "matrix=$MATRIX"  >> $GITHUB_OUTPUT
+
+          # Finally we make things visible to the user by creating a github job summary markdown
+          echo '### Kurtosis argument files used' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          # We format the list of matching files as a markdown list
+          printf -- '- `%s`\n' $ASSETS_PREFIX*${{ inputs.filter }}*.yaml >> $GITHUB_STEP_SUMMARY
+
+
+  test:
+    name: Kurtosis (${{ matrix.args.subname }})
+    runs-on: ubuntu-latest
+    strategy:
+      # This job uses the dynamic matrix created in prepare-job-matrix job
+      matrix: ${{ fromJson(needs.prepare-job-matrix.outputs.matrix) }}
+      fail-fast: false
+    timeout-minutes: 60
     needs:
+      - prepare-job-matrix
       - prepare-op-reth
       - prepare-op-geth
       - prepare-op-node
+    env:
+      ENCLAVE_NAME: op-devnet
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,92 +164,12 @@ jobs:
           # List available images
           docker image ls -a
 
-      - name: Run kurtosis
-        run: |
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local.yaml
-          ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
-          GETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-geth-op-node-op-kurtosis".public_ports.rpc.number')
-          RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-2-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
-          echo "GETH_RPC=http://127.0.0.1:$GETH_PORT" >> $GITHUB_ENV
-          echo "RETH_RPC=http://127.0.0.1:$RETH_PORT" >> $GITHUB_ENV
+      - name: Run kurtosis using ${{ matrix.args.path }}
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file ${{ matrix.args.path }}
 
       - name: Assert that clients advance
-        run: |
-          for i in {1..100}; do
-            sleep 5
-            BLOCK_GETH=$(cast bn --rpc-url $GETH_RPC)
-            BLOCK_RETH=$(cast bn --rpc-url $RETH_RPC)
+        run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
 
-            if [ $BLOCK_GETH -ge 100 ] && [ $BLOCK_RETH -ge 100 ] ; then exit 0; fi
-            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH Geth: $BLOCK_GETH"
-          done
-          kurtosis service logs -a op-devnet op-el-2-op-reth-op-node-op-kurtosis
-          kurtosis service logs -a op-devnet op-cl-2-op-node-op-reth-op-kurtosis
-          exit 1
-
-  test-no-op-geth:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-    name: Kurtosis without op-geth
-    runs-on: ubuntu-latest
-    needs:
-      - prepare-op-reth
-      - prepare-op-node
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
-
-      - name: Download docker image artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: artifacts--*
-          merge-multiple: true
-          path: /tmp
-
-      - name: Load Docker images
-        run: |
-          # Load all images from artifacts
-          docker load -i /tmp/op_reth_image.tar
-          docker load -i /tmp/op_node_image.tar
-          
-          # List available images
-          docker image ls -a
-
-      - name: Run kurtosis
-        run: |
-          kurtosis run --enclave op-devnet github.com/ethpandaops/optimism-package --args-file .github/assets/kurtosis_op_network_params_local_no_op_geth.yaml
-          ENCLAVE_ID=$(curl http://127.0.0.1:9779/api/enclaves | jq --raw-output 'keys[0]')
-          RETH_PORT=$(curl "http://127.0.0.1:9779/api/enclaves/$ENCLAVE_ID/services" | jq '."op-el-1-op-reth-op-node-op-kurtosis".public_ports.rpc.number')
-          echo "RETH_RPC=http://127.0.0.1:$RETH_PORT" >> $GITHUB_ENV
-
-      - name: Assert that clients advance
-        run: |
-          for i in {1..100}; do
-            sleep 5
-            BLOCK_RETH=$(cast bn --rpc-url $RETH_RPC)
-
-            if [ $BLOCK_RETH -ge 100 ] ; then exit 0; fi
-            echo "Waiting for clients to advance..., Reth: $BLOCK_RETH"
-          done
-          kurtosis service logs -a op-devnet op-el-1-op-reth-op-node-op-kurtosis
-          kurtosis service logs -a op-devnet op-cl-1-op-node-op-reth-op-kurtosis
-          exit 1
-
-  notify-on-error:
-    needs: 
-      - test-op-geth
-      - test-no-op-geth
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Slack Webhook Action
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: "Failed run: https://github.com/paradigmxyz/reth/actions/runs/${{ github.run_id }}"
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Dump kurtosis logs
+        if: ${{ always() }}
+        run: ./.github/scripts/kurtosis-dump-logs.sh $ENCLAVE_NAME
