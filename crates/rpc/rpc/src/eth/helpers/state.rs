@@ -78,7 +78,8 @@ mod tests {
         accounts: HashMap<Address, ExtendedAccount>,
     ) -> EthApi<MockEthProvider, TestPool, (), EthEvmConfig> {
         let pool = testing_pool();
-        let mock_provider = MockEthProvider::default();
+        use reth_primitives::TransactionSigned;
+        let mock_provider = MockEthProvider::<TransactionSigned>::default();
 
         let evm_config = EthEvmConfig::new(mock_provider.chain_spec());
         mock_provider.extend_accounts(accounts);

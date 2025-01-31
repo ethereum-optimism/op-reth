@@ -278,7 +278,8 @@ impl Stream for PingPongProtoConnection {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_proto_multiplex() {
     reth_tracing::init_test_tracing();
-    let provider = MockEthProvider::default();
+    use reth_primitives::TransactionSigned;
+    let provider = MockEthProvider::<TransactionSigned>::default();
     let mut net = Testnet::create_with(2, provider.clone()).await;
 
     let (tx, mut from_peer0) = mpsc::unbounded_channel();

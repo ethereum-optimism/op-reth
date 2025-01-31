@@ -46,6 +46,7 @@ reth-optimism-primitives = { workspace = true, features = ["serde", "serde-binco
 
 # revm with required optimism features
 revm = { workspace = true, features = ["secp256k1", "blst", "c-kzg"] }
+revm-primitives.workspace = true
 
 # ethereum
 alloy-eips.workspace = true
@@ -62,6 +63,7 @@ derive_more.workspace = true
 serde.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
+tracing.workspace = true
 
 # rpc
 serde_json.workspace = true
@@ -72,6 +74,7 @@ alloy-genesis = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
+reth-optimism-chainspec.workspace = true
 reth-optimism-node = { workspace = true, features = ["test-utils"] }
 reth-db.workspace = true
 reth-node-core.workspace = true
@@ -94,6 +97,7 @@ optimism = [
 	"reth-optimism-evm/optimism",
 	"reth-optimism-payload-builder/optimism",
 	"revm/optimism",
+	"revm-primitives/optimism",
 	"reth-optimism-rpc/optimism",
 	"reth-engine-local/op",
 	"reth-optimism-consensus/optimism",
@@ -106,6 +110,7 @@ asm-keccak = [
 	"reth-primitives/asm-keccak",
 	"alloy-primitives/asm-keccak",
 	"revm/asm-keccak",
+    "revm-primitives/asm-keccak",
 	"reth-optimism-node/asm-keccak",
 	"reth-node-core/asm-keccak"
 ]

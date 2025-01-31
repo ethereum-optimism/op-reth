@@ -36,7 +36,7 @@ async fn test_large_tx_req() {
     let txs_hashes: Vec<B256> = txs.iter().map(|tx| *tx.get_hash()).collect();
 
     // setup testnet
-    let mut net = Testnet::create_with(2, MockEthProvider::default()).await;
+    let mut net = Testnet::create_with(2, MockEthProvider::<TransactionSigned>::default()).await;
 
     // install request handlers
     net.for_each_mut(|peer| peer.install_request_handler());

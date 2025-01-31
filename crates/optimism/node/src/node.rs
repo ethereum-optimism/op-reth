@@ -96,11 +96,12 @@ impl OpNode {
             >,
         >,
     {
-        let RollupArgs { disable_txpool_gossip, compute_pending_block, discovery_v4, .. } =
-            self.args;
+        let RollupArgs {
+            disable_txpool_gossip, compute_pending_block, interop, discovery_v4, ..
+        } = self.args;
         ComponentsBuilder::default()
             .node_types::<Node>()
-            .pool(OpPoolBuilder::default())
+            .pool(OpPoolBuilder { interop, ..Default::default() })
             .payload(
                 OpPayloadBuilder::new(compute_pending_block).with_da_config(self.da_config.clone()),
             )
@@ -343,6 +344,8 @@ where
 pub struct OpPoolBuilder {
     /// Enforced overrides that are applied to the pool config.
     pub pool_config_overrides: PoolBuilderConfigOverrides,
+    /// Whether to enable interop.
+    pub interop: bool,
 }
 
 impl<Node> PoolBuilder<Node> for OpPoolBuilder
@@ -352,7 +355,7 @@ where
     type Pool = OpTransactionPool<Node::Provider, DiskFileBlobStore>;
 
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
-        let Self { pool_config_overrides } = self;
+        let Self { pool_config_overrides, interop } = self;
         let data_dir = ctx.config().datadir();
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
@@ -373,6 +376,8 @@ where
                 // In --dev mode we can't require gas fees because we're unable to decode
                 // the L1 block info
                 .require_l1_data_gas_fee(!ctx.config().dev.dev)
+                // Only configure `OpEvmConfig` if interop is enabled.
+                .with_evm_config(interop.then_some(OpEvmConfig::new(ctx.chain_spec())))
         });
 
         let transaction_pool = reth_transaction_pool::Pool::new(
