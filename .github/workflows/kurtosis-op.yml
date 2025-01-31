@@ -1,0 +1,175 @@
+# Runs simple OP stack setup in Kurtosis
+
+name: Run kurtosis
+
+run-name: "Run kurtosis ${{ inputs.filter && format('(only arg files matching {0})', inputs.filter) || '' }} ${{ format('[op-geth: {0}@{1}; op-node: {2}@{3}]', inputs.op-geth-repo, inputs.op-geth-ref, inputs.op-node-repo, inputs.op-node-ref) }}"
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        type: string
+        required: false
+        description: "A glob-style expression to filter the kurtosis args files, e.g. 'local', 'remote', 'no_op_geth' etc"
+        default: ''
+      op-node-repo:
+        type: string
+        required: true
+        description: "An optimizm repo (clone) to use for op-node (formatted as org/repo)"
+        default: ethereum-optimism/optimism
+
+      op-node-ref:
+        type: string
+        required: true
+        description: "op-node git ref (branch/commit) to use"
+        default: develop
+      
+      op-geth-repo:
+        type: string
+        required: true
+        description: "An op-geth repo (clone) to use for op-geth (formatted as org/repo)"
+        default: ethereum-optimism/op-geth
+
+      op-geth-ref:
+        type: string
+        required: true
+        description: "op-geth git ref (branch/commit) to use"
+        default: optimism
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-op-geth:
+    name: Prepare op-geth docker image (${{ inputs.op-geth-repo }}@${{ inputs.op-geth-ref }})
+    uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
+    with:
+      repo: ${{ inputs.op-geth-repo }}
+      ref: ${{ inputs.op-geth-ref }}
+      image_tag: ghcr.io/ethereum-optimism/op-geth:kurtosis-ci
+      artifact_name: op_geth_image
+
+  prepare-op-node:
+    name: Prepare op-node docker image (${{ inputs.op-node-repo }}@${{ inputs.op-node-ref }})
+    uses: ./.github/workflows/prepare-op-image.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
+    with:
+      repo: ${{ inputs.op-node-repo }}
+      ref: ${{ inputs.op-node-ref }}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-node-target
+      image_tag: ghcr.io/ethereum-optimism/op-node:kurtosis-ci
+      artifact_name: op_node_image
+
+  prepare-op-reth:
+    name: Prepare op-reth docker image (${{ github.repository }}@${{ github.ref }})
+    uses: ./.github/workflows/prepare-op-reth.yml
+    needs:
+      # We add the prepare-job-matrix as a dependency so that we fail fast if there are no matching configurations
+      - prepare-job-matrix
+    with:
+      image_tag: ghcr.io/paradigmxyz/op-reth:kurtosis-ci
+      binary_name: op-reth
+      cargo_features: optimism,asm-keccak
+      cargo_package: crates/optimism/bin/Cargo.toml
+
+  # This job expands the "images" input parameter into a list of matching kurtosis args files
+  # and formats them into a JSON-encoded matrix
+  # 
+  # This is so that we can just pick "local" or "remote" from a dropdown
+  # and based on the value we select, an appropriate matrix of jobs will be spun up
+  # without us needed to copy-paste sections of this workflow whenever a new argument file is added
+  prepare-job-matrix:
+    name: Prepare kurtosis test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      # The output of this job is the JSON-encoded github actions matrix
+      matrix: ${{ steps.prepare.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Prepare matrix
+        id: prepare
+        run: |
+          # Just to keep things DRY
+          ASSETS_PREFIX="./.github/assets/kurtosis_op_network_params_"
+
+          # If the filter does not match anything, we want the script to error out
+          # 
+          # The default behaviour of globs with no matches it to return the expression
+          # so we'll adjust it to error out if there are no matches
+          compgen -G "$ASSETS_PREFIX*${{ inputs.filter }}*.yaml" || { echo '**No kurtosis args files matching filter `${{ inputs.filter }}`**' >> $GITHUB_STEP_SUMMARY; exit 1; }
+
+          # We use a helper shell script to format a list of matching yaml files into a github-actions-compatible matrix
+          MATRIX=$(./.github/scripts/kurtosis-format-args-file-matrix.sh $ASSETS_PREFIX*${{ inputs.filter }}*.yaml)
+          
+          # And we use the matrix as an output of this step
+          echo "matrix=$MATRIX"  >> $GITHUB_OUTPUT
+
+          # Finally we make things visible to the user by creating a github job summary markdown
+          echo '### Kurtosis argument files used' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          # We format the list of matching files as a markdown list
+          printf -- '- `%s`\n' $ASSETS_PREFIX*${{ inputs.filter }}*.yaml >> $GITHUB_STEP_SUMMARY
+
+
+  test:
+    name: Kurtosis (${{ matrix.args.subname }})
+    runs-on: ubuntu-latest
+    strategy:
+      # This job uses the dynamic matrix created in prepare-job-matrix job
+      matrix: ${{ fromJson(needs.prepare-job-matrix.outputs.matrix) }}
+      fail-fast: false
+    timeout-minutes: 60
+    needs:
+      - prepare-job-matrix
+      - prepare-op-reth
+      - prepare-op-geth
+      - prepare-op-node
+    env:
+      ENCLAVE_NAME: op-devnet
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Download docker image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifacts--*
+          merge-multiple: true
+          path: /tmp
+
+      - name: Load Docker images
+        run: |
+          # Load all images from artifacts
+          docker load -i /tmp/op_reth_image.tar
+          docker load -i /tmp/op_geth_image.tar
+          docker load -i /tmp/op_node_image.tar
+          
+          # List available images
+          docker image ls -a
+
+      - name: Run kurtosis using ${{ matrix.args.path }}
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file ${{ matrix.args.path }}
+
+      - name: Assert that clients advance
+        run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME
+
+      - name: Dump kurtosis logs
+        if: ${{ always() }}
+        run: ./.github/scripts/kurtosis-dump-logs.sh $ENCLAVE_NAME
