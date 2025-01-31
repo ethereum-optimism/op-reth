@@ -125,7 +125,7 @@ jobs:
 
 
   test:
-    name: Kurtosis (${{ matrix.args }})
+    name: Kurtosis (${{ matrix.args.subname }})
     runs-on: ubuntu-latest
     strategy:
       # This job uses the dynamic matrix created in prepare-job-matrix job
@@ -164,8 +164,8 @@ jobs:
           # List available images
           docker image ls -a
 
-      - name: Run kurtosis using ${{ matrix.args }}
-        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file ${{ matrix.args }}
+      - name: Run kurtosis using ${{ matrix.args.path }}
+        run: kurtosis run --enclave $ENCLAVE_NAME github.com/ethpandaops/optimism-package --args-file ${{ matrix.args.path }}
 
       - name: Assert that clients advance
         run: ./.github/scripts/kurtosis-check-enclave-block-creation.sh $ENCLAVE_NAME

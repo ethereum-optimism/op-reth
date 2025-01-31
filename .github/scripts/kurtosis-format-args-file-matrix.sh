@@ -19,13 +19,27 @@ ARGS_FILES=("$@")
 # All the echoes must go to stderr since stdout must be a JSON object
 echo "Found ${#ARGS_FILES[@]} matching files: ${ARGS_FILES[@]}" 1>&2;
 
-# Format the results as a JSON array
-ARGS_FILES_JSON=$(jq -cn --argjson files "$(printf '%s\n' "${ARGS_FILES[@]}" | jq -R . | jq -s .)" '$files')
+ARGS=()
+for ARGS_FILE_PATH in "${ARGS_FILES[@]}"; do
+    # We get the kurtosis file basename
+    ARGS_FILE_NAME=$(basename "$ARGS_FILE_PATH")
+    # And try to remove the prefix to get the important version of the filename
+    ARGS_FILE_SUBNAME=$(echo "$ARGS_FILE_NAME" | awk 'sub(/kurtosis_op_network_params_/,"")')
+    
+    # Now we turn those into an object
+    ARGS_OBJECT=$(jq -cn --arg path "$ARGS_FILE_PATH" --arg name "$ARGS_FILE_NAME" --arg subname "$ARGS_FILE_SUBNAME" '{path: $path, name: $name, subname: $subname}')
 
-# Place the JSON array into a JSON object under "args" key
+    # And push it to the ARGS array
+    ARGS+=("$ARGS_OBJECT")
+done
+
+# We combine all the individual objects into a JSON array
+ARGS_JSON=$(printf '%s\n' "${ARGS[@]}" | jq -sc .)
+
+# And put the array under an "args" key in an object
 # 
 # This way the output can be directly used as a github action matrix definition
-ARGS_FILES_MATRIX=$(jq -cn --argjson array "$ARGS_FILES_JSON" '{args: $array}')
+ARGS_FILES_MATRIX=$(jq -cn --argjson array "$ARGS_JSON" '{args: $array}')
 
 # Print the matrix to stdout
 echo "$ARGS_FILES_MATRIX"
