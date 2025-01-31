@@ -629,7 +629,7 @@ mod tests {
             TransactionValidationOutcome::Error(_, err) => err,
             _ => panic!("Expected invalid transaction"),
         };
-        assert_eq!(err.to_string(), "block fetch failed");
+        assert_eq!(err.to_string(), "latest block fetch failed");
     }
 
     #[test]
