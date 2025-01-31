@@ -44,6 +44,9 @@ reth-optimism-consensus.workspace = true
 reth-optimism-forks.workspace = true
 reth-optimism-primitives = { workspace = true, features = ["serde", "serde-bincode-compat"] }
 
+# Maili
+maili-rpc.workspace = true
+
 # revm with required optimism features
 revm = { workspace = true, features = ["secp256k1", "blst", "c-kzg"] }
 revm-primitives.workspace = true
