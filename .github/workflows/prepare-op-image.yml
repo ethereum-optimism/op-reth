@@ -49,7 +49,7 @@ jobs:
 
       - name: Clone ${{ inputs.repo }}
         shell: bash
-        run: git clone --recurse-submodules ${{ inputs.repo }} ./tmp/submodule
+        run: git clone --recurse-submodules 'https://github.com/${{ inputs.repo }}.git' ./tmp/submodule
 
       - name: Checkout ${{ inputs.ref }}
         shell: bash
